@@ -10,64 +10,65 @@ import RiderDashboard from './components/RiderDashboard';
 import Footer from './components/Footer';
 import Login from './components/Login';
 import { getAuth, onAuthStateChanged, signOut } from 'firebase/auth';
-// 1. IMPORT Database tools for notifications
 import { db } from './firebase';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 
 export default function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  // 2. STATE: Track number of active orders for the badge
   const [notificationCount, setNotificationCount] = useState(0);
   
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [selectedVendor, setSelectedVendor] = useState(null); 
   
-  const [showVendor, setShowVendor] = useState(false);
-  const [showRider, setShowRider] = useState(false); 
-  const [showHistory, setShowHistory] = useState(false);
+  // VIEW STATES
+  const [currentView, setCurrentView] = useState('home'); // 'home', 'vendor', 'rider', 'history'
+
+  // SECURITY CONFIGURATION
+  // In a real app, these roles would be stored in the database under a 'users' collection
+  const ADMIN_EMAIL = "admin@printdeck.com";
+  const VENDOR_EMAILS = ["vendor@printdeck.com", "shop@rapidprint.com"];
+  const RIDER_EMAILS = ["rider@printdeck.com"];
 
   useEffect(() => {
     const auth = getAuth();
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setLoading(false);
+      
+      // Auto-redirect vendors/riders to their dashboards upon login
+      if (currentUser) {
+        if (VENDOR_EMAILS.includes(currentUser.email)) {
+          setCurrentView('vendor');
+        } else if (RIDER_EMAILS.includes(currentUser.email)) {
+          setCurrentView('rider');
+        }
+      }
     });
     return () => unsubscribe();
   }, []);
 
-  // 3. LOGIC: Listen for Active Orders (Notifications)
+  // NOTIFICATION LOGIC
   useEffect(() => {
     if (!user) {
       setNotificationCount(0);
       return;
     }
-
-    // Query: Get orders for this user
-    const q = query(
-      collection(db, "orders"),
-      where("userId", "==", user.uid)
-    );
-
-    // Listen for changes
+    const q = query(collection(db, "orders"), where("userId", "==", user.uid));
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      // Count orders that are NOT completed (Active)
       const activeOrders = snapshot.docs.filter(doc => {
         const status = doc.data().status;
         return status !== 'Completed' && status !== 'Cancelled';
       });
       setNotificationCount(activeOrders.length);
     });
-
     return () => unsubscribe();
   }, [user]);
 
   const resetFlow = () => {
     setSelectedProduct(null);
     setSelectedVendor(null);
-    setShowVendor(false);
-    setShowRider(false);
-    setShowHistory(false);
+    setCurrentView('home');
   };
 
   const handleLogout = () => {
@@ -81,48 +82,63 @@ export default function App() {
     if (element) element.scrollIntoView({ behavior: 'smooth' });
   };
 
+  // CHECK ROLES
+  const isAdmin = user && user.email === ADMIN_EMAIL;
+  const isVendor = user && VENDOR_EMAILS.includes(user.email);
+  const isRider = user && RIDER_EMAILS.includes(user.email);
+
   if (loading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   if (!user) return <Login />;
 
   return (
     <div className="bg-gray-50 min-h-screen flex flex-col">
-      {/* 4. PASS the count to Navbar */}
       <Navbar 
         user={user} 
-        activeCount={notificationCount} // <--- Passing the count here
+        activeCount={notificationCount}
         onLogout={handleLogout}
-        onMyOrders={() => { resetFlow(); setShowHistory(true); }} 
+        onMyOrders={() => { resetFlow(); setCurrentView('history'); }} 
         onHome={resetFlow}
       />
       
-      {/* Dev Mode Bar */}
-      <div className="bg-gray-800 text-white p-2 text-center text-sm flex justify-center items-center space-x-4">
-        <span className="text-gray-400">Dev Mode:</span>
-        <button 
-          onClick={() => { resetFlow(); setShowVendor(true); }}
-          className={`underline font-bold hover:text-yellow-300 ${showVendor ? 'text-yellow-300' : 'text-yellow-500'}`}
-        >
-          Vendor App
-        </button>
-        <span className="text-gray-600">|</span>
-        <button 
-          onClick={() => { resetFlow(); setShowRider(true); }}
-          className={`underline font-bold hover:text-green-300 ${showRider ? 'text-green-300' : 'text-green-500'}`}
-        >
-          Rider App
-        </button>
-        <span className="text-gray-600">|</span>
-        <button onClick={resetFlow} className="hover:text-white">Customer App</button>
-      </div>
+      {/* SECURITY BAR: Only visible to Admins, Vendors, or Riders */}
+      {(isAdmin || isVendor || isRider) && (
+        <div className="bg-gray-800 text-white p-2 text-center text-sm flex justify-center items-center space-x-4">
+          <span className="text-gray-400 font-mono">Role: {isAdmin ? "Admin" : isVendor ? "Vendor" : "Rider"}</span>
+          
+          {(isAdmin || isVendor) && (
+            <button 
+              onClick={() => setCurrentView('vendor')}
+              className={`underline font-bold hover:text-yellow-300 ${currentView === 'vendor' ? 'text-yellow-300' : 'text-yellow-500'}`}
+            >
+              Vendor Dashboard
+            </button>
+          )}
+          
+          {(isAdmin || isRider) && (
+            <>
+              <span className="text-gray-600">|</span>
+              <button 
+                onClick={() => setCurrentView('rider')}
+                className={`underline font-bold hover:text-green-300 ${currentView === 'rider' ? 'text-green-300' : 'text-green-500'}`}
+              >
+                Rider App
+              </button>
+            </>
+          )}
+
+          <span className="text-gray-600">|</span>
+          <button onClick={resetFlow} className="hover:text-white">Customer View</button>
+        </div>
+      )}
 
       <main className="flex-grow max-w-7xl mx-auto py-2 px-4 w-full">
         
-        {/* VIEW LOGIC */}
-        {showVendor ? (
+        {/* SECURE VIEW LOGIC */}
+        {currentView === 'vendor' && (isAdmin || isVendor) ? (
           <VendorDashboard onBack={resetFlow} />
-        ) : showRider ? (
+        ) : currentView === 'rider' && (isAdmin || isRider) ? (
           <RiderDashboard onBack={resetFlow} />
-        ) : showHistory ? (
+        ) : currentView === 'history' ? (
           <OrderHistory user={user} onBack={resetFlow} />
         ) : selectedProduct && selectedVendor ? (
           <ProductConfigurator 
