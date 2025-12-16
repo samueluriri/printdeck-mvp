@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import Navbar from './components/Navbar';
+import Hero from './components/Hero'; // 1. Import the Hero
 import ProductGrid from './components/ProductGrid';
 import ProductConfigurator from './components/ProductConfigurator';
 import VendorDashboard from './components/VendorDashboard';
 import VendorList from './components/VendorList';
 import OrderHistory from './components/OrderHistory';
-import RiderDashboard from './components/RiderDashboard'; // 1. Import Rider App
+import RiderDashboard from './components/RiderDashboard'; 
 import Footer from './components/Footer';
 import Login from './components/Login';
 import { getAuth, onAuthStateChanged, signOut } from 'firebase/auth';
@@ -17,9 +18,8 @@ export default function App() {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [selectedVendor, setSelectedVendor] = useState(null); 
   
-  // VIEW STATES
   const [showVendor, setShowVendor] = useState(false);
-  const [showRider, setShowRider] = useState(false); // 2. New State for Rider
+  const [showRider, setShowRider] = useState(false); 
   const [showHistory, setShowHistory] = useState(false);
 
   useEffect(() => {
@@ -45,6 +45,12 @@ export default function App() {
     resetFlow();
   };
 
+  // Helper to smooth scroll to products
+  const scrollToProducts = () => {
+    const element = document.getElementById('products-section');
+    if (element) element.scrollIntoView({ behavior: 'smooth' });
+  };
+
   if (loading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   if (!user) return <Login />;
 
@@ -57,40 +63,32 @@ export default function App() {
         onHome={resetFlow}
       />
       
-      {/* Dev Mode Bar - Updated with Rider Switch */}
+      {/* Dev Mode Bar */}
       <div className="bg-gray-800 text-white p-2 text-center text-sm flex justify-center items-center space-x-4">
         <span className="text-gray-400">Dev Mode:</span>
-        
         <button 
           onClick={() => { resetFlow(); setShowVendor(true); }}
           className={`underline font-bold hover:text-yellow-300 ${showVendor ? 'text-yellow-300' : 'text-yellow-500'}`}
         >
           Vendor App
         </button>
-        
         <span className="text-gray-600">|</span>
-        
         <button 
           onClick={() => { resetFlow(); setShowRider(true); }}
           className={`underline font-bold hover:text-green-300 ${showRider ? 'text-green-300' : 'text-green-500'}`}
         >
           Rider App
         </button>
-
         <span className="text-gray-600">|</span>
-
-        <button onClick={resetFlow} className="hover:text-white">
-          Customer App
-        </button>
+        <button onClick={resetFlow} className="hover:text-white">Customer App</button>
       </div>
 
-      <main className="flex-grow max-w-7xl mx-auto py-10 px-4 w-full">
+      <main className="flex-grow max-w-7xl mx-auto py-2 px-4 w-full">
         
-        {/* VIEW LOGIC: Check which screen to show */}
+        {/* VIEW LOGIC */}
         {showVendor ? (
           <VendorDashboard onBack={resetFlow} />
         ) : showRider ? (
-          // 3. Show Rider Dashboard
           <RiderDashboard onBack={resetFlow} />
         ) : showHistory ? (
           <OrderHistory user={user} onBack={resetFlow} />
@@ -109,18 +107,13 @@ export default function App() {
           />
         ) : (
           <>
-            <div className="text-center mt-10 mb-20">
-              <h2 className="text-4xl font-bold text-gray-900 mb-4">
-                Printing made seamless.
-              </h2>
-              <p className="text-xl text-gray-600">
-                Connect with local print shops and get delivery in minutes.
-              </p>
-              <button className="mt-8 bg-indigo-600 text-white px-8 py-3 rounded-full font-bold shadow-lg hover:bg-indigo-700 transition">
-                Start Printing
-              </button>
+            {/* 2. REPLACED old text header with New Hero Component */}
+            <Hero onStart={scrollToProducts} />
+            
+            {/* 3. Added ID for scrolling */}
+            <div id="products-section">
+              <ProductGrid onSelectProduct={setSelectedProduct} />
             </div>
-            <ProductGrid onSelectProduct={setSelectedProduct} />
           </>
         )}
         
