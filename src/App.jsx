@@ -7,11 +7,12 @@ import VendorDashboard from './components/VendorDashboard';
 import VendorList from './components/VendorList';
 import OrderHistory from './components/OrderHistory';
 import RiderDashboard from './components/RiderDashboard'; 
+// 1. IMPORT ADMIN DASHBOARD
+import AdminDashboard from './components/AdminDashboard';
 import Footer from './components/Footer';
 import Login from './components/Login';
 import { getAuth, onAuthStateChanged, signOut } from 'firebase/auth';
 import { db } from './firebase';
-// IMPORT: Added doc, getDoc, setDoc for user profile management
 import { collection, query, where, onSnapshot, doc, getDoc, setDoc } from 'firebase/firestore';
 
 export default function App() {
@@ -19,14 +20,39 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [notificationCount, setNotificationCount] = useState(0);
   
-  // NEW STATE: Store the user's role from database (default to customer)
   const [userRole, setUserRole] = useState('customer');
   
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [selectedVendor, setSelectedVendor] = useState(null); 
   
   // VIEW STATES
-  const [currentView, setCurrentView] = useState('home'); // 'home', 'vendor', 'rider', 'history'
+  // 'home', 'vendor', 'rider', 'history', 'admin'
+  const [currentView, setCurrentView] = useState('home'); 
+
+  // BRANDING POLISH: Dynamic Document Title
+  useEffect(() => {
+    switch (currentView) {
+      case 'vendor':
+        document.title = "Vendor Dashboard | PrintDeck";
+        break;
+      case 'rider':
+        document.title = "Rider App | PrintDeck";
+        break;
+      case 'admin':
+        document.title = "Admin Ops | PrintDeck";
+        break;
+      case 'history':
+        document.title = "My Orders | PrintDeck";
+        break;
+      default:
+        // Check if configuring product
+        if (selectedProduct) {
+          document.title = `Configure ${selectedProduct.name} | PrintDeck`;
+        } else {
+          document.title = "PrintDeck | Print Anything, Delivered Fast";
+        }
+    }
+  }, [currentView, selectedProduct]);
 
   useEffect(() => {
     const auth = getAuth();
@@ -34,50 +60,38 @@ export default function App() {
       setUser(currentUser);
       
       if (currentUser) {
-        console.log("Auth State Changed: User logged in:", currentUser.email);
-        
-        // 1. DATABASE ROLE CHECK
         try {
           const userRef = doc(db, "users", currentUser.uid);
           const userSnap = await getDoc(userRef);
 
           if (userSnap.exists()) {
-            console.log("User profile found in database.");
-            // Existing User: Get their role
             const data = userSnap.data();
             setUserRole(data.role || 'customer');
             
-            // Auto-redirect workers to their dashboards
             if (data.role === 'vendor') setCurrentView('vendor');
             else if (data.role === 'rider') setCurrentView('rider');
             else if (data.role === 'admin') setCurrentView('home'); 
 
           } else {
-            console.log("No profile found. Creating new user profile in 'users' collection...");
-            // New User: Create a profile in 'users' collection with default role
             await setDoc(userRef, {
               email: currentUser.email,
-              role: 'customer', // Default role is ALWAYS customer
+              role: 'customer',
               createdAt: new Date()
             });
-            console.log("User profile created successfully!");
             setUserRole('customer');
           }
         } catch (e) {
           console.error("Error handling user profile:", e);
-          setUserRole('customer'); // Fallback to safe role
+          setUserRole('customer'); 
         }
       } else {
-        console.log("User logged out.");
         setUserRole('customer');
       }
-      
       setLoading(false);
     });
     return () => unsubscribe();
   }, []);
 
-  // NOTIFICATION LOGIC
   useEffect(() => {
     if (!user) {
       setNotificationCount(0);
@@ -111,7 +125,6 @@ export default function App() {
     if (element) element.scrollIntoView({ behavior: 'smooth' });
   };
 
-  // 2. CHECK ROLES DYNAMICALLY
   const isAdmin = userRole === 'admin';
   const isVendor = userRole === 'vendor';
   const isRider = userRole === 'rider';
@@ -129,30 +142,37 @@ export default function App() {
         onHome={resetFlow}
       />
       
-      {/* SECURITY BAR: Updated to show dynamic role */}
+      {/* SECURITY BAR */}
       {(isAdmin || isVendor || isRider) && (
-        <div className="bg-gray-800 text-white p-2 text-center text-sm flex justify-center items-center space-x-4">
-          <span className="text-gray-400 font-mono uppercase">Role: {userRole}</span>
+        <div className="bg-gray-800 text-white p-2 text-center text-sm flex flex-wrap justify-center items-center gap-4">
+          <span className="text-gray-400 font-mono uppercase hidden sm:inline">Role: {userRole}</span>
           
+          {/* 2. ADMIN ONLY BUTTON */}
+          {isAdmin && (
+            <button 
+              onClick={() => setCurrentView('admin')}
+              className={`underline font-bold hover:text-purple-300 ${currentView === 'admin' ? 'text-purple-300' : 'text-purple-400'}`}
+            >
+              Admin Ops
+            </button>
+          )}
+
           {(isAdmin || isVendor) && (
             <button 
               onClick={() => setCurrentView('vendor')}
               className={`underline font-bold hover:text-yellow-300 ${currentView === 'vendor' ? 'text-yellow-300' : 'text-yellow-500'}`}
             >
-              Vendor Dashboard
+              Vendor Dash
             </button>
           )}
           
           {(isAdmin || isRider) && (
-            <>
-              <span className="text-gray-600">|</span>
-              <button 
-                onClick={() => setCurrentView('rider')}
-                className={`underline font-bold hover:text-green-300 ${currentView === 'rider' ? 'text-green-300' : 'text-green-500'}`}
-              >
-                Rider App
-              </button>
-            </>
+            <button 
+              onClick={() => setCurrentView('rider')}
+              className={`underline font-bold hover:text-green-300 ${currentView === 'rider' ? 'text-green-300' : 'text-green-500'}`}
+            >
+              Rider App
+            </button>
           )}
 
           <span className="text-gray-600">|</span>
@@ -162,8 +182,10 @@ export default function App() {
 
       <main className="flex-grow max-w-7xl mx-auto py-2 px-4 w-full">
         
-        {/* SECURE VIEW LOGIC */}
-        {currentView === 'vendor' && (isAdmin || isVendor) ? (
+        {/* VIEW LOGIC */}
+        {currentView === 'admin' && isAdmin ? (
+          <AdminDashboard onBack={resetFlow} />
+        ) : currentView === 'vendor' && (isAdmin || isVendor) ? (
           <VendorDashboard onBack={resetFlow} />
         ) : currentView === 'rider' && (isAdmin || isRider) ? (
           <RiderDashboard onBack={resetFlow} />
