@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Navbar from './components/Navbar';
-import Hero from './components/Hero'; // 1. Import the Hero
+import Hero from './components/Hero'; 
 import ProductGrid from './components/ProductGrid';
 import ProductConfigurator from './components/ProductConfigurator';
 import VendorDashboard from './components/VendorDashboard';
@@ -10,10 +10,15 @@ import RiderDashboard from './components/RiderDashboard';
 import Footer from './components/Footer';
 import Login from './components/Login';
 import { getAuth, onAuthStateChanged, signOut } from 'firebase/auth';
+// 1. IMPORT Database tools for notifications
+import { db } from './firebase';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
 
 export default function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  // 2. STATE: Track number of active orders for the badge
+  const [notificationCount, setNotificationCount] = useState(0);
   
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [selectedVendor, setSelectedVendor] = useState(null); 
@@ -31,6 +36,32 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
+  // 3. LOGIC: Listen for Active Orders (Notifications)
+  useEffect(() => {
+    if (!user) {
+      setNotificationCount(0);
+      return;
+    }
+
+    // Query: Get orders for this user
+    const q = query(
+      collection(db, "orders"),
+      where("userId", "==", user.uid)
+    );
+
+    // Listen for changes
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      // Count orders that are NOT completed (Active)
+      const activeOrders = snapshot.docs.filter(doc => {
+        const status = doc.data().status;
+        return status !== 'Completed' && status !== 'Cancelled';
+      });
+      setNotificationCount(activeOrders.length);
+    });
+
+    return () => unsubscribe();
+  }, [user]);
+
   const resetFlow = () => {
     setSelectedProduct(null);
     setSelectedVendor(null);
@@ -45,7 +76,6 @@ export default function App() {
     resetFlow();
   };
 
-  // Helper to smooth scroll to products
   const scrollToProducts = () => {
     const element = document.getElementById('products-section');
     if (element) element.scrollIntoView({ behavior: 'smooth' });
@@ -56,8 +86,10 @@ export default function App() {
 
   return (
     <div className="bg-gray-50 min-h-screen flex flex-col">
+      {/* 4. PASS the count to Navbar */}
       <Navbar 
         user={user} 
+        activeCount={notificationCount} // <--- Passing the count here
         onLogout={handleLogout}
         onMyOrders={() => { resetFlow(); setShowHistory(true); }} 
         onHome={resetFlow}
@@ -107,10 +139,7 @@ export default function App() {
           />
         ) : (
           <>
-            {/* 2. REPLACED old text header with New Hero Component */}
             <Hero onStart={scrollToProducts} />
-            
-            {/* 3. Added ID for scrolling */}
             <div id="products-section">
               <ProductGrid onSelectProduct={setSelectedProduct} />
             </div>

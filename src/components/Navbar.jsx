@@ -1,13 +1,13 @@
 import React from 'react';
 
-// UPDATE: Accept 'onMyOrders' and 'onHome' props
-export default function Navbar({ user, onLogout, onMyOrders, onHome }) {
+// UPDATE: Accept 'activeCount' prop from App.jsx
+export default function Navbar({ user, onLogout, onMyOrders, onHome, activeCount }) {
   return (
     <nav className="bg-white shadow-md w-full sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           
-          {/* Logo Section - Click to go Home */}
+          {/* Logo Section */}
           <div 
             className="flex-shrink-0 flex items-center cursor-pointer" 
             onClick={onHome}
@@ -20,7 +20,6 @@ export default function Navbar({ user, onLogout, onMyOrders, onHome }) {
           {/* Navigation Links */}
           <div className="hidden md:flex space-x-8 items-center">
             
-            {/* Clickable Home Link */}
             <button 
               onClick={onHome} 
               className="text-gray-700 hover:text-indigo-600 font-medium bg-transparent border-none cursor-pointer"
@@ -28,12 +27,19 @@ export default function Navbar({ user, onLogout, onMyOrders, onHome }) {
               Home
             </button>
             
-            {/* Clickable My Orders Link */}
+            {/* My Orders Link with Notification Badge */}
             <button 
               onClick={onMyOrders} 
-              className="text-gray-700 hover:text-indigo-600 font-medium bg-transparent border-none cursor-pointer"
+              className="text-gray-700 hover:text-indigo-600 font-medium bg-transparent border-none cursor-pointer relative"
             >
               My Orders
+              
+              {/* THE RED BADGE: Only show if count > 0 */}
+              {activeCount > 0 && (
+                <span className="absolute -top-2 -right-3 bg-red-600 text-white text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[1.2rem] text-center shadow-sm animate-bounce">
+                  {activeCount}
+                </span>
+              )}
             </button>
             
             {/* User Info / Logout */}
