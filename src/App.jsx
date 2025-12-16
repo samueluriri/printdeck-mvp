@@ -11,12 +11,16 @@ import Footer from './components/Footer';
 import Login from './components/Login';
 import { getAuth, onAuthStateChanged, signOut } from 'firebase/auth';
 import { db } from './firebase';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
+// IMPORT: Added doc, getDoc, setDoc for user profile management
+import { collection, query, where, onSnapshot, doc, getDoc, setDoc } from 'firebase/firestore';
 
 export default function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [notificationCount, setNotificationCount] = useState(0);
+  
+  // NEW STATE: Store the user's role from database (default to customer)
+  const [userRole, setUserRole] = useState('customer');
   
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [selectedVendor, setSelectedVendor] = useState(null); 
@@ -24,26 +28,51 @@ export default function App() {
   // VIEW STATES
   const [currentView, setCurrentView] = useState('home'); // 'home', 'vendor', 'rider', 'history'
 
-  // SECURITY CONFIGURATION
-  // In a real app, these roles would be stored in the database under a 'users' collection
-  const ADMIN_EMAIL = "admin@printdeck.com";
-  const VENDOR_EMAILS = ["vendor@printdeck.com", "shop@rapidprint.com"];
-  const RIDER_EMAILS = ["rider@printdeck.com"];
-
   useEffect(() => {
     const auth = getAuth();
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
-      setLoading(false);
       
-      // Auto-redirect vendors/riders to their dashboards upon login
       if (currentUser) {
-        if (VENDOR_EMAILS.includes(currentUser.email)) {
-          setCurrentView('vendor');
-        } else if (RIDER_EMAILS.includes(currentUser.email)) {
-          setCurrentView('rider');
+        console.log("Auth State Changed: User logged in:", currentUser.email);
+        
+        // 1. DATABASE ROLE CHECK
+        try {
+          const userRef = doc(db, "users", currentUser.uid);
+          const userSnap = await getDoc(userRef);
+
+          if (userSnap.exists()) {
+            console.log("User profile found in database.");
+            // Existing User: Get their role
+            const data = userSnap.data();
+            setUserRole(data.role || 'customer');
+            
+            // Auto-redirect workers to their dashboards
+            if (data.role === 'vendor') setCurrentView('vendor');
+            else if (data.role === 'rider') setCurrentView('rider');
+            else if (data.role === 'admin') setCurrentView('home'); 
+
+          } else {
+            console.log("No profile found. Creating new user profile in 'users' collection...");
+            // New User: Create a profile in 'users' collection with default role
+            await setDoc(userRef, {
+              email: currentUser.email,
+              role: 'customer', // Default role is ALWAYS customer
+              createdAt: new Date()
+            });
+            console.log("User profile created successfully!");
+            setUserRole('customer');
+          }
+        } catch (e) {
+          console.error("Error handling user profile:", e);
+          setUserRole('customer'); // Fallback to safe role
         }
+      } else {
+        console.log("User logged out.");
+        setUserRole('customer');
       }
+      
+      setLoading(false);
     });
     return () => unsubscribe();
   }, []);
@@ -82,10 +111,10 @@ export default function App() {
     if (element) element.scrollIntoView({ behavior: 'smooth' });
   };
 
-  // CHECK ROLES
-  const isAdmin = user && user.email === ADMIN_EMAIL;
-  const isVendor = user && VENDOR_EMAILS.includes(user.email);
-  const isRider = user && RIDER_EMAILS.includes(user.email);
+  // 2. CHECK ROLES DYNAMICALLY
+  const isAdmin = userRole === 'admin';
+  const isVendor = userRole === 'vendor';
+  const isRider = userRole === 'rider';
 
   if (loading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   if (!user) return <Login />;
@@ -100,10 +129,10 @@ export default function App() {
         onHome={resetFlow}
       />
       
-      {/* SECURITY BAR: Only visible to Admins, Vendors, or Riders */}
+      {/* SECURITY BAR: Updated to show dynamic role */}
       {(isAdmin || isVendor || isRider) && (
         <div className="bg-gray-800 text-white p-2 text-center text-sm flex justify-center items-center space-x-4">
-          <span className="text-gray-400 font-mono">Role: {isAdmin ? "Admin" : isVendor ? "Vendor" : "Rider"}</span>
+          <span className="text-gray-400 font-mono uppercase">Role: {userRole}</span>
           
           {(isAdmin || isVendor) && (
             <button 
