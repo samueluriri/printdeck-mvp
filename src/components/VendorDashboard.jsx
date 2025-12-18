@@ -1,203 +1,165 @@
 import React, { useEffect, useState } from 'react';
-// FIX: Explicitly added .js extension for reliable path resolution
-import { db } from '../firebase.js';
-import { collection, onSnapshot, query, doc, updateDoc, getDocs, addDoc } from 'firebase/firestore';
-
-// Helper to sort and format orders (Moved outside component for stability)
-const processOrders = (docs) => {
-  try {
-    const ordersList = docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
-
-    ordersList.sort((a, b) => {
-      const getMillis = (item) => {
-          if (!item.createdAt) return 0;
-          // Handle Firestore Timestamp (has .toDate())
-          if (typeof item.createdAt.toDate === 'function') return item.createdAt.toDate().getTime();
-          // Handle JS Date object
-          if (typeof item.createdAt.getTime === 'function') return item.createdAt.getTime(); 
-          // Handle String/Number
-          return new Date(item.createdAt).getTime(); 
-      }
-      return getMillis(b) - getMillis(a);
-    });
-
-    return ordersList;
-  } catch (err) {
-    console.error("Processing Error:", err);
-    return [];
-  }
-};
+// FIX: Reverted to standard import to satisfy build tool
+import { db } from '../firebase';
+import { collection, onSnapshot, query, doc, updateDoc, getDocs } from 'firebase/firestore';
 
 export default function VendorDashboard({ onBack }) {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [statusMsg, setStatusMsg] = useState("Initializing...");
-  const [projectId, setProjectId] = useState("Unknown");
+  // NEW: Tab state
+  const [activeTab, setActiveTab] = useState('live'); // 'live' or 'history'
 
-  useEffect(() => {
-    // Show which project we are connected to for debugging
-    if (db && db.app && db.app.options) {
-      setProjectId(db.app.options.projectId);
-    }
-  }, []);
-
-  // DEBUG TOOL: Create a fake order to test connection
-  const createTestOrder = async () => {
+  const processOrders = (docs) => {
     try {
-      setStatusMsg("Creating test order...");
-      await addDoc(collection(db, "orders"), {
-        productName: "TEST ORDER",
-        vendorName: "Debug Mode",
-        quantity: 1,
-        totalPrice: 100,
-        createdAt: new Date(),
-        status: "Pending"
+      const ordersList = docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      // Sort newest first
+      ordersList.sort((a, b) => {
+        const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt || 0);
+        const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt || 0);
+        return dateB - dateA;
       });
-      alert("Test Order Created! If you don't see it appear below instantly, check your Firebase Console.");
-    } catch (e) {
-      console.error("Test Order Failed:", e);
-      alert(`Test Write Failed: ${e.message}`);
-    }
-  };
-
-  const manualRefresh = async () => {
-    setLoading(true);
-    setStatusMsg("Manual refreshing...");
-    try {
-      const querySnapshot = await getDocs(collection(db, "orders"));
-      console.log("Manual Fetch Count:", querySnapshot.size);
-      
-      const processed = processOrders(querySnapshot.docs);
-      setOrders(processed);
-      setStatusMsg(`Loaded ${processed.length} orders manually.`);
+      return ordersList;
     } catch (err) {
-      console.error("Manual Fetch Error:", err);
-      setStatusMsg(`Error: ${err.message}`);
-    } finally {
-      setLoading(false);
+      console.error("Processing Error:", err);
+      return [];
     }
   };
 
   useEffect(() => {
-    setStatusMsg("Connecting to real-time updates...");
-    
-    // Simple query to fetch all orders
+    setStatusMsg("Connecting...");
     const q = query(collection(db, "orders"));
-
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      setStatusMsg(`Real-time active. Found ${snapshot.docs.length} docs.`);
       const processed = processOrders(snapshot.docs);
       setOrders(processed);
       setLoading(false);
-    }, (error) => {
-      console.error("VendorDashboard Error:", error);
-      setStatusMsg(`Connection Error: ${error.message}`);
-      setLoading(false);
+      setStatusMsg("Connected");
     });
-
     return () => unsubscribe();
   }, []);
 
   const markReady = async (orderId) => {
     try {
       const orderRef = doc(db, "orders", orderId);
-      await updateDoc(orderRef, {
-        status: "Ready for Pickup"
-      });
+      await updateDoc(orderRef, { status: "Ready for Pickup" });
       alert("Order marked as Ready!");
     } catch (e) {
-      console.error("Error updating status:", e);
       alert(`Failed to update: ${e.message}`);
     }
   };
 
+  // FILTER LOGIC
+  // Live: Everything active (Pending, Printing, Ready, Out for Delivery)
+  const liveOrders = orders.filter(o => 
+    !['Completed', 'Cancelled'].includes(o.status)
+  );
+  
+  // History: Completed or Cancelled
+  const historyOrders = orders.filter(o => 
+    ['Completed', 'Cancelled'].includes(o.status)
+  );
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+      <div className="flex justify-between items-center mb-6">
         <div>
           <h2 className="text-3xl font-bold text-gray-900">Vendor Dashboard</h2>
-          <div className="text-xs text-gray-500 mt-1 font-mono bg-gray-100 p-2 rounded">
-            <p>Status: {statusMsg}</p>
-            <p>Project ID: {projectId}</p>
-          </div>
+          <p className="text-sm text-gray-500">Manage your print queue</p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <button 
-            onClick={createTestOrder} 
-            className="bg-yellow-100 text-yellow-800 font-medium px-3 py-1 rounded hover:bg-yellow-200 border border-yellow-300"
-          >
-            + Create Test Order
-          </button>
-          <button 
-            onClick={manualRefresh} 
-            className="text-indigo-600 font-medium border border-indigo-600 px-3 py-1 rounded hover:bg-indigo-50"
-          >
-            ↻ Force Refresh
-          </button>
-          <button onClick={onBack} className="text-gray-600 font-medium px-3 py-1">
-            Exit
-          </button>
-        </div>
+        <button onClick={onBack} className="text-gray-600 font-medium px-4 py-2 border rounded-lg hover:bg-gray-50 bg-white">
+          Exit Dashboard
+        </button>
+      </div>
+
+      {/* TABS */}
+      <div className="flex gap-4 border-b border-gray-200 mb-6">
+        <button 
+          onClick={() => setActiveTab('live')}
+          className={`pb-3 px-4 font-bold text-sm transition-all border-b-2 ${activeTab === 'live' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+        >
+          Live Queue ({liveOrders.length})
+        </button>
+        <button 
+          onClick={() => setActiveTab('history')}
+          className={`pb-3 px-4 font-bold text-sm transition-all border-b-2 ${activeTab === 'history' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+        >
+          Order History
+        </button>
       </div>
 
       {loading ? (
         <p className="text-gray-500 animate-pulse">Loading orders...</p>
-      ) : (
+      ) : activeTab === 'live' ? (
+        // LIVE ORDERS VIEW
         <div className="grid gap-4">
-          {orders.map((order) => (
+          {liveOrders.map((order) => (
             <div key={order.id} className="bg-white p-6 rounded-lg shadow border border-gray-200 flex flex-col md:flex-row justify-between items-center gap-4">
-              
               <div className="flex-grow">
                 <div className="flex items-center gap-3 mb-1">
                   <h3 className="font-bold text-lg text-indigo-900">{order.productName}</h3>
-                  <span className={`px-2 py-0.5 rounded text-xs font-bold uppercase ${
-                    order.status === 'Ready for Pickup' ? 'bg-green-100 text-green-800' :
-                    order.status === 'Out for Delivery' ? 'bg-blue-100 text-blue-800' :
-                    'bg-yellow-100 text-yellow-800'
-                  }`}>
-                    {order.status}
-                  </span>
+                  <span className={`px-2 py-0.5 rounded text-xs font-bold uppercase ${order.status === 'Ready for Pickup' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>{order.status}</span>
                 </div>
-                <p className="text-sm text-gray-600">
-                  <span className="font-bold">{order.quantity} units</span> • {order.paperType}
-                </p>
+                <p className="text-sm text-gray-600"><span className="font-bold">{order.quantity} units</span> • {order.paperType}</p>
                 <div className="text-xs text-gray-400 mt-1">
-                  <p>Order ID: {order.id}</p>
-                  <p>Paystack Ref: {order.paymentRef || "N/A"}</p>
+                  <p>ID: {order.id}</p>
+                  <p>Ref: {order.paymentRef || "N/A"}</p>
                 </div>
               </div>
-
               <div className="text-right flex flex-col items-end gap-2">
                 <p className="text-xl font-bold text-gray-800">₦{order.totalPrice?.toLocaleString()}</p>
-                
                 {order.status === "Pending" && (
-                  <button 
-                    onClick={() => markReady(order.id)}
-                    className="bg-indigo-600 text-white text-sm font-bold px-4 py-2 rounded shadow hover:bg-indigo-700 transition"
-                  >
-                    Mark Ready for Pickup
-                  </button>
+                  <button onClick={() => markReady(order.id)} className="bg-indigo-600 text-white text-sm font-bold px-4 py-2 rounded shadow hover:bg-indigo-700 transition">Mark Ready</button>
                 )}
-
-                {order.status === "Ready for Pickup" && (
-                  <span className="text-xs text-green-600 font-medium">Waiting for Rider...</span>
-                )}
+                {order.status === "Ready for Pickup" && <span className="text-xs text-green-600 font-medium bg-green-50 px-2 py-1 rounded">Waiting for Rider...</span>}
+                {order.status === "Out for Delivery" && <span className="text-xs text-blue-600 font-medium bg-blue-50 px-2 py-1 rounded">Rider on the way</span>}
               </div>
-
             </div>
           ))}
-          
-          {orders.length === 0 && (
-            <div className="text-center py-10 bg-gray-50 rounded-lg border border-dashed border-gray-300">
-              <p className="text-gray-500">No active orders found.</p>
-              <p className="text-xs text-gray-400 mt-2">
-                Try clicking "Create Test Order" above to verify connection.
-              </p>
+          {liveOrders.length === 0 && (
+            <div className="text-center py-12 bg-gray-50 rounded-xl border border-dashed border-gray-300">
+              <p className="text-gray-500 font-medium">No active orders.</p>
+              <p className="text-sm text-gray-400">New orders will appear here instantly.</p>
             </div>
           )}
+        </div>
+      ) : (
+        // HISTORY VIEW
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Date</th>
+                <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Product</th>
+                <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Amount</th>
+                <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {historyOrders.map((order) => (
+                <tr key={order.id} className="hover:bg-gray-50 transition">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {new Date(order.createdAt?.seconds * 1000).toLocaleDateString()}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm font-medium text-gray-900">{order.productName}</div>
+                    <div className="text-xs text-gray-500">{order.quantity} units</div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">
+                    ₦{order.totalPrice?.toLocaleString()}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                      {order.status}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {historyOrders.length === 0 && <div className="p-8 text-center text-gray-500">No completed orders yet.</div>}
         </div>
       )}
     </div>

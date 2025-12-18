@@ -3,10 +3,10 @@ import React, { useEffect, useState } from 'react';
 import { db } from '../firebase';
 import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
 
-// UPDATE: Added 'onTrackOrder' prop to destructuring
 export default function OrderHistory({ user, onBack, onTrackOrder }) {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('active'); // 'active' or 'past'
 
   useEffect(() => {
     if (!user) return;
@@ -33,6 +33,12 @@ export default function OrderHistory({ user, onBack, onTrackOrder }) {
     return () => unsubscribe();
   }, [user]);
 
+  // Filter orders based on status
+  const activeOrders = orders.filter(o => !['Completed', 'Cancelled'].includes(o.status));
+  const pastOrders = orders.filter(o => ['Completed', 'Cancelled'].includes(o.status));
+  
+  const displayOrders = activeTab === 'active' ? activeOrders : pastOrders;
+
   return (
     <div className="max-w-4xl mx-auto py-8 px-4">
       <button 
@@ -42,20 +48,38 @@ export default function OrderHistory({ user, onBack, onTrackOrder }) {
         ← Back to Shop
       </button>
 
-      <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-8">My Order History</h2>
+      <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">My Orders</h2>
+
+      {/* TABS */}
+      <div className="flex gap-4 border-b border-gray-200 dark:border-gray-700 mb-6">
+        <button 
+          onClick={() => setActiveTab('active')}
+          className={`pb-2 px-4 font-bold text-sm border-b-2 transition-colors ${activeTab === 'active' ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400'}`}
+        >
+          Ongoing ({activeOrders.length})
+        </button>
+        <button 
+          onClick={() => setActiveTab('past')}
+          className={`pb-2 px-4 font-bold text-sm border-b-2 transition-colors ${activeTab === 'past' ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400'}`}
+        >
+          History
+        </button>
+      </div>
 
       {loading ? (
         <p className="text-gray-500 animate-pulse">Loading your orders...</p>
-      ) : orders.length === 0 ? (
+      ) : displayOrders.length === 0 ? (
         <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
-          <p className="text-gray-500 dark:text-gray-400 mb-4">You haven't placed any orders yet.</p>
-          <button onClick={onBack} className="bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-indigo-700">
-            Start Printing
-          </button>
+          <p className="text-gray-500 dark:text-gray-400 mb-4">No {activeTab === 'active' ? 'ongoing' : 'past'} orders found.</p>
+          {activeTab === 'active' && (
+            <button onClick={onBack} className="bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-indigo-700">
+              Start Printing
+            </button>
+          )}
         </div>
       ) : (
         <div className="grid gap-6">
-          {orders.map((order) => (
+          {displayOrders.map((order) => (
             <div 
               key={order.id} 
               className="bg-white dark:bg-gray-900 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 hover:shadow-md transition"
@@ -88,14 +112,25 @@ export default function OrderHistory({ user, onBack, onTrackOrder }) {
                     ₦{order.totalPrice?.toLocaleString()}
                   </div>
                   
-                  {/* NEW: Track Order Button - Only shows if order is active */}
-                  {order.status !== 'Completed' && order.status !== 'Cancelled' && (
-                    <button 
-                      onClick={() => onTrackOrder(order)}
-                      className="text-xs bg-indigo-600 text-white px-3 py-1.5 rounded-full font-semibold hover:bg-indigo-700 transition flex items-center gap-1 shadow-sm"
-                    >
-                      <span>📍</span> Track Live
-                    </button>
+                  {/* Actions Row */}
+                  {activeTab === 'active' && (
+                    <div className="flex gap-2 mt-1">
+                      {/* Call Button - Toggles between Rider/Vendor based on status */}
+                      <a 
+                        href={`tel:${order.vendorPhone || '08000000000'}`} 
+                        className="text-xs border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 px-3 py-1.5 rounded-full font-semibold hover:bg-gray-50 dark:hover:bg-gray-800 transition flex items-center gap-1"
+                      >
+                        <span>📞</span> Call {order.status === 'Out for Delivery' ? 'Rider' : 'Shop'}
+                      </a>
+
+                      {/* Track Button */}
+                      <button 
+                        onClick={() => onTrackOrder(order)}
+                        className="text-xs bg-indigo-600 text-white px-3 py-1.5 rounded-full font-semibold hover:bg-indigo-700 transition flex items-center gap-1 shadow-sm"
+                      >
+                        <span>📍</span> Track Live
+                      </button>
+                    </div>
                   )}
                 </div>
               </div>
