@@ -7,8 +7,10 @@ import VendorDashboard from './components/VendorDashboard';
 import VendorList from './components/VendorList';
 import OrderHistory from './components/OrderHistory';
 import RiderDashboard from './components/RiderDashboard'; 
-// 1. IMPORT ADMIN DASHBOARD
 import AdminDashboard from './components/AdminDashboard';
+import LiveTracking from './components/LiveTracking'; // Ensure LiveTracking is available
+// 1. IMPORT RIDER REGISTRATION
+import RiderRegistration from './components/RiderRegistration';
 import Footer from './components/Footer';
 import Login from './components/Login';
 import { getAuth, onAuthStateChanged, signOut } from 'firebase/auth';
@@ -20,16 +22,35 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [notificationCount, setNotificationCount] = useState(0);
   
+  const [darkMode, setDarkMode] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('theme') === 'dark';
+    }
+    return false;
+  });
+
   const [userRole, setUserRole] = useState('customer');
   
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [selectedVendor, setSelectedVendor] = useState(null); 
+  // Track order tracking
+  const [trackingOrder, setTrackingOrder] = useState(null);
   
-  // VIEW STATES
-  // 'home', 'vendor', 'rider', 'history', 'admin'
+  // VIEW STATES: 'home', 'vendor', 'rider', 'history', 'admin', 'rider_onboarding'
   const [currentView, setCurrentView] = useState('home'); 
 
-  // BRANDING POLISH: Dynamic Document Title
+  // DARK MODE EFFECT
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  }, [darkMode]);
+
+  // TITLE EFFECT
   useEffect(() => {
     switch (currentView) {
       case 'vendor':
@@ -44,16 +65,21 @@ export default function App() {
       case 'history':
         document.title = "My Orders | PrintDeck";
         break;
+      case 'rider_onboarding':
+        document.title = "Rider Registration | PrintDeck";
+        break;
       default:
-        // Check if configuring product
-        if (selectedProduct) {
+        if (trackingOrder) {
+          document.title = "Tracking Order | PrintDeck";
+        } else if (selectedProduct) {
           document.title = `Configure ${selectedProduct.name} | PrintDeck`;
         } else {
           document.title = "PrintDeck | Print Anything, Delivered Fast";
         }
     }
-  }, [currentView, selectedProduct]);
+  }, [currentView, selectedProduct, trackingOrder]);
 
+  // AUTH LOGIC
   useEffect(() => {
     const auth = getAuth();
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -68,6 +94,7 @@ export default function App() {
             const data = userSnap.data();
             setUserRole(data.role || 'customer');
             
+            // Auto-redirect if they are strictly a worker
             if (data.role === 'vendor') setCurrentView('vendor');
             else if (data.role === 'rider') setCurrentView('rider');
             else if (data.role === 'admin') setCurrentView('home'); 
@@ -92,6 +119,7 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
+  // NOTIFICATION LOGIC
   useEffect(() => {
     if (!user) {
       setNotificationCount(0);
@@ -111,6 +139,7 @@ export default function App() {
   const resetFlow = () => {
     setSelectedProduct(null);
     setSelectedVendor(null);
+    setTrackingOrder(null);
     setCurrentView('home');
   };
 
@@ -129,68 +158,100 @@ export default function App() {
   const isVendor = userRole === 'vendor';
   const isRider = userRole === 'rider';
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+  if (loading) return <div className="min-h-screen flex items-center justify-center dark:bg-gray-950 dark:text-white">Loading...</div>;
   if (!user) return <Login />;
 
   return (
-    <div className="bg-gray-50 min-h-screen flex flex-col">
+    <div className={`min-h-screen flex flex-col transition-colors duration-300 ${darkMode ? 'bg-gray-950 text-gray-100' : 'bg-gray-50 text-gray-900'}`}>
       <Navbar 
         user={user} 
         activeCount={notificationCount}
         onLogout={handleLogout}
         onMyOrders={() => { resetFlow(); setCurrentView('history'); }} 
         onHome={resetFlow}
+        darkMode={darkMode} 
       />
       
-      {/* SECURITY BAR */}
-      {(isAdmin || isVendor || isRider) && (
-        <div className="bg-gray-800 text-white p-2 text-center text-sm flex flex-wrap justify-center items-center gap-4">
-          <span className="text-gray-400 font-mono uppercase hidden sm:inline">Role: {userRole}</span>
-          
-          {/* 2. ADMIN ONLY BUTTON */}
-          {isAdmin && (
-            <button 
-              onClick={() => setCurrentView('admin')}
-              className={`underline font-bold hover:text-purple-300 ${currentView === 'admin' ? 'text-purple-300' : 'text-purple-400'}`}
-            >
-              Admin Ops
-            </button>
-          )}
+      {/* SECURITY BAR / ROLE SWITCHER */}
+      {/* Visible to everyone logged in, but options depend on role */}
+      <div className="bg-gray-800 text-white p-2 text-center text-sm flex flex-wrap justify-center items-center gap-4 mt-16 dark:bg-gray-900 dark:border-b dark:border-gray-800">
+        <span className="text-gray-400 font-mono uppercase hidden sm:inline">Role: {userRole}</span>
+        
+        {isAdmin && (
+          <button 
+            onClick={() => setCurrentView('admin')}
+            className={`underline font-bold hover:text-purple-300 ${currentView === 'admin' ? 'text-purple-300' : 'text-purple-400'}`}
+          >
+            Admin Ops
+          </button>
+        )}
 
-          {(isAdmin || isVendor) && (
-            <button 
-              onClick={() => setCurrentView('vendor')}
-              className={`underline font-bold hover:text-yellow-300 ${currentView === 'vendor' ? 'text-yellow-300' : 'text-yellow-500'}`}
-            >
-              Vendor Dash
-            </button>
-          )}
-          
-          {(isAdmin || isRider) && (
-            <button 
-              onClick={() => setCurrentView('rider')}
-              className={`underline font-bold hover:text-green-300 ${currentView === 'rider' ? 'text-green-300' : 'text-green-500'}`}
-            >
-              Rider App
-            </button>
-          )}
+        {(isAdmin || isVendor) && (
+          <button 
+            onClick={() => setCurrentView('vendor')}
+            className={`underline font-bold hover:text-yellow-300 ${currentView === 'vendor' ? 'text-yellow-300' : 'text-yellow-500'}`}
+          >
+            Vendor Dash
+          </button>
+        )}
+        
+        {(isAdmin || isRider) && (
+          <button 
+            onClick={() => setCurrentView('rider')}
+            className={`underline font-bold hover:text-green-300 ${currentView === 'rider' ? 'text-green-300' : 'text-green-500'}`}
+          >
+            Rider App
+          </button>
+        )}
 
-          <span className="text-gray-600">|</span>
-          <button onClick={resetFlow} className="hover:text-white">Customer View</button>
-        </div>
-      )}
+        {/* RIDER ONBOARDING LINK: Only show for customers who are NOT yet riders */}
+        {!isRider && !isAdmin && !isVendor && (
+          <>
+            <span className="text-gray-600">|</span>
+            <button 
+              onClick={() => setCurrentView('rider_onboarding')}
+              className="text-orange-400 hover:text-orange-300 font-bold flex items-center gap-1"
+            >
+              🚀 Become a Rider
+            </button>
+          </>
+        )}
 
-      <main className="flex-grow max-w-7xl mx-auto py-2 px-4 w-full">
+        <span className="text-gray-600">|</span>
+        <button onClick={resetFlow} className="hover:text-white">Customer View</button>
+      </div>
+
+      {/* MAIN CONTENT */}
+      <main className={`flex-grow max-w-7xl mx-auto px-4 w-full ${ (isAdmin || isVendor || isRider || currentView === 'rider_onboarding') ? 'py-6' : 'pt-24 pb-10' }`}>
         
         {/* VIEW LOGIC */}
-        {currentView === 'admin' && isAdmin ? (
+        {currentView === 'rider_onboarding' ? (
+          // 2. RENDER REGISTRATION FORM
+          <RiderRegistration 
+            user={user} 
+            onComplete={() => {
+              // Reload page to refresh role (simple way)
+              window.location.reload();
+            }}
+            onCancel={resetFlow} 
+          />
+        ) : trackingOrder ? (
+          <LiveTracking 
+            order={trackingOrder} 
+            onBack={() => setTrackingOrder(null)} 
+          />
+        ) : currentView === 'admin' && isAdmin ? (
           <AdminDashboard onBack={resetFlow} />
         ) : currentView === 'vendor' && (isAdmin || isVendor) ? (
           <VendorDashboard onBack={resetFlow} />
         ) : currentView === 'rider' && (isAdmin || isRider) ? (
           <RiderDashboard onBack={resetFlow} />
         ) : currentView === 'history' ? (
-          <OrderHistory user={user} onBack={resetFlow} />
+          <OrderHistory 
+            user={user} 
+            onBack={resetFlow} 
+            onTrackOrder={(order) => setTrackingOrder(order)} 
+          />
         ) : selectedProduct && selectedVendor ? (
           <ProductConfigurator 
             product={selectedProduct}
@@ -216,6 +277,20 @@ export default function App() {
       </main>
 
       <Footer />
+
+      {/* Dark Mode Toggle */}
+      <button 
+        onClick={() => setDarkMode(!darkMode)}
+        className="fixed bottom-6 right-6 p-4 rounded-full shadow-2xl z-50 transition-all duration-300 hover:scale-110 bg-indigo-600 text-white dark:bg-yellow-400 dark:text-gray-900"
+        title="Toggle Dark Mode"
+      >
+        {darkMode ? (
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+        ) : (
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+        )}
+      </button>
+
     </div>
   )
 }
