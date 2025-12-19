@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-// FIX: Explicitly added .js extension to resolve path issues
-import { db } from '../firebase.js';
+// FIX: Using standard import convention for Vite
+import { db } from '../firebase';
 import { collection, addDoc } from 'firebase/firestore';
 import { PaystackButton } from 'react-paystack';
 
@@ -12,15 +12,32 @@ export default function ProductConfigurator({ product, vendor, user, onBack }) {
   const [paperType, setPaperType] = useState("Standard Matte");
   const [isUploading, setIsUploading] = useState(false);
   
+  // 1. PRODUCT PRICE CALCULATION
   const priceString = product.price || "0"; 
   const basePrice = parseInt(priceString.replace(/[^\d]/g, '')) || 0;
-  const totalPrice = basePrice * (quantity / 100); 
+  const productTotal = basePrice * (quantity / 100); 
 
-  // CONFIGURATION
-  // 👇👇👇 VERIFY THIS KEY IS CORRECT 👇👇👇
+  // 2. DYNAMIC DELIVERY FEE CALCULATION
+  // Formula: Base ₦400 + (₦150 per KM)
+  const calculateDeliveryFee = () => {
+    if (!vendor || !vendor.distance) return 500; // Fallback
+    // Convert "3.5km" string to number 3.5
+    const distanceValue = parseFloat(vendor.distance.replace('km', '').trim());
+    const baseFare = 400;
+    const perKm = 150;
+    
+    const fee = baseFare + (distanceValue * perKm);
+    return Math.ceil(fee / 50) * 50; // Round up to nearest 50 Naira
+  };
+
+  const deliveryFee = calculateDeliveryFee();
+  const grandTotal = productTotal + deliveryFee;
+
+  // PAYSTACK CONFIG
+  // I have added the key you provided so it works immediately
   const publicKey = 'pk_test_bd406b657e73316d11a5859b914a563982001fc6'; 
   
-  const amount = Math.max(100, Math.ceil(totalPrice * 100)); // Kobo
+  const amount = Math.max(100, Math.ceil(grandTotal * 100)); // Total in Kobo
   const userEmail = user?.email || "guest@example.com";
   const userId = user?.uid || "anonymous";
 
@@ -41,11 +58,19 @@ export default function ProductConfigurator({ product, vendor, user, onBack }) {
         userId: userId,
         userEmail: userEmail,
         productName: product.name,
+        
         vendorName: vendor ? vendor.name : "Unknown Vendor", 
         vendorId: vendor ? vendor.id : "unknown",
+        vendorDistance: vendor ? vendor.distance : "0km",
+        
         quantity: quantity,
         paperType: paperType,
-        totalPrice: totalPrice,
+        
+        // SAVE FINANCIAL BREAKDOWN
+        productPrice: productTotal,
+        deliveryFee: deliveryFee,
+        totalPrice: grandTotal,
+        
         createdAt: new Date(), 
         status: "Pending",
         paymentRef: paymentRef 
@@ -82,7 +107,7 @@ export default function ProductConfigurator({ product, vendor, user, onBack }) {
     email: userEmail,
     amount: amount,
     publicKey: publicKey,
-    text: "Pay Now with Paystack",
+    text: `Pay ₦${grandTotal.toLocaleString()}`,
     onSuccess: handlePaystackSuccessAction,
     onClose: handlePaystackCloseAction,
   };
@@ -101,45 +126,58 @@ export default function ProductConfigurator({ product, vendor, user, onBack }) {
   const isKeyMissing = !publicKey || publicKey.includes('YOUR_PUBLIC_KEY');
 
   return (
-    <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-100 max-w-2xl mx-auto">
+    <div className="bg-white dark:bg-gray-900 p-8 rounded-xl shadow-lg border border-gray-100 dark:border-gray-800 max-w-2xl mx-auto">
       <div className="flex items-center mb-6">
         <button onClick={onBack} className="text-gray-500 hover:text-indigo-600 font-medium mr-4">← Back</button>
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Configure {product.name}</h2>
-          <p className="text-sm text-gray-500 mt-1">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Configure {product.name}</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
             Printing with: <span className="font-semibold text-indigo-600">{vendor ? vendor.name : 'Unknown Shop'}</span>
+            <span className="mx-2">•</span>
+            <span>{vendor ? vendor.distance : '0km'} away</span>
           </p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div className="bg-gray-50 rounded-lg p-10 flex items-center justify-center text-6xl">{product.icon}</div>
+        <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-10 flex items-center justify-center text-6xl">{product.icon}</div>
 
         <div className="space-y-6">
           {/* Form Inputs */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Quantity</label>
-            <input type="number" value={quantity} onChange={(e) => setQuantity(Number(e.target.value))} min="10" step="10" className="w-full p-3 border border-gray-300 rounded-lg outline-none focus:border-indigo-500"/>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Quantity</label>
+            <input type="number" value={quantity} onChange={(e) => setQuantity(Number(e.target.value))} min="10" step="10" className="w-full p-3 border border-gray-300 dark:border-gray-700 rounded-lg outline-none focus:border-indigo-500 bg-white dark:bg-gray-800 dark:text-white"/>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Paper Finish</label>
-            <select value={paperType} onChange={(e) => setPaperType(e.target.value)} className="w-full p-3 border border-gray-300 rounded-lg outline-none focus:border-indigo-500 bg-white">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Paper Finish</label>
+            <select value={paperType} onChange={(e) => setPaperType(e.target.value)} className="w-full p-3 border border-gray-300 dark:border-gray-700 rounded-lg outline-none focus:border-indigo-500 bg-white dark:bg-gray-800 dark:text-white">
               <option>Standard Matte</option>
               <option>Premium Glossy (+₦2,000)</option>
             </select>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Upload Design</label>
-            <div onClick={handleUpload} className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer border-gray-300 hover:border-indigo-400">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Upload Design</label>
+            <div onClick={handleUpload} className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer border-gray-300 dark:border-gray-700 hover:border-indigo-400">
               {isUploading ? <span className="text-indigo-600 font-bold">Uploading...</span> : <span className="text-gray-500">Click to upload</span>}
             </div>
           </div>
 
-          <div className="bg-indigo-50 p-4 rounded-lg flex justify-between items-center">
-            <span className="text-indigo-900 font-medium">Total:</span>
-            <span className="text-2xl font-bold text-indigo-700">₦{totalPrice.toLocaleString()}</span>
+          {/* PRICING BREAKDOWN */}
+          <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg space-y-2">
+            <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400">
+              <span>Subtotal ({quantity} units)</span>
+              <span>₦{productTotal.toLocaleString()}</span>
+            </div>
+            <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400">
+              <span>Delivery Fee ({vendor ? vendor.distance : 'Flat'})</span>
+              <span>₦{deliveryFee.toLocaleString()}</span>
+            </div>
+            <div className="flex justify-between items-center pt-2 border-t border-gray-200 dark:border-gray-700">
+              <span className="text-indigo-900 dark:text-indigo-300 font-bold">Total to Pay</span>
+              <span className="text-2xl font-bold text-indigo-700 dark:text-indigo-400">₦{grandTotal.toLocaleString()}</span>
+            </div>
           </div>
 
           {/* PAYMENT BUTTON OR WARNING */}

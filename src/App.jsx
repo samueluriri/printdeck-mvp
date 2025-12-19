@@ -8,9 +8,10 @@ import VendorList from './components/VendorList';
 import OrderHistory from './components/OrderHistory';
 import RiderDashboard from './components/RiderDashboard'; 
 import AdminDashboard from './components/AdminDashboard';
-import LiveTracking from './components/LiveTracking'; // Ensure LiveTracking is available
-// 1. IMPORT RIDER REGISTRATION
+import LiveTracking from './components/LiveTracking'; 
 import RiderRegistration from './components/RiderRegistration';
+// 1. IMPORT NOTIFICATION HANDLER
+import PushNotificationHandler from './components/PushNotificationHandler'; 
 import Footer from './components/Footer';
 import Login from './components/Login';
 import { getAuth, onAuthStateChanged, signOut } from 'firebase/auth';
@@ -33,13 +34,10 @@ export default function App() {
   
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [selectedVendor, setSelectedVendor] = useState(null); 
-  // Track order tracking
   const [trackingOrder, setTrackingOrder] = useState(null);
   
-  // VIEW STATES: 'home', 'vendor', 'rider', 'history', 'admin', 'rider_onboarding'
   const [currentView, setCurrentView] = useState('home'); 
 
-  // DARK MODE EFFECT
   useEffect(() => {
     if (darkMode) {
       document.documentElement.classList.add('dark');
@@ -50,7 +48,6 @@ export default function App() {
     }
   }, [darkMode]);
 
-  // TITLE EFFECT
   useEffect(() => {
     switch (currentView) {
       case 'vendor':
@@ -79,7 +76,6 @@ export default function App() {
     }
   }, [currentView, selectedProduct, trackingOrder]);
 
-  // AUTH LOGIC
   useEffect(() => {
     const auth = getAuth();
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -94,7 +90,6 @@ export default function App() {
             const data = userSnap.data();
             setUserRole(data.role || 'customer');
             
-            // Auto-redirect if they are strictly a worker
             if (data.role === 'vendor') setCurrentView('vendor');
             else if (data.role === 'rider') setCurrentView('rider');
             else if (data.role === 'admin') setCurrentView('home'); 
@@ -119,7 +114,6 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  // NOTIFICATION LOGIC
   useEffect(() => {
     if (!user) {
       setNotificationCount(0);
@@ -172,8 +166,10 @@ export default function App() {
         darkMode={darkMode} 
       />
       
+      {/* 2. INCLUDE NOTIFICATION HANDLER HERE */}
+      <PushNotificationHandler user={user} />
+
       {/* SECURITY BAR / ROLE SWITCHER */}
-      {/* Visible to everyone logged in, but options depend on role */}
       <div className="bg-gray-800 text-white p-2 text-center text-sm flex flex-wrap justify-center items-center gap-4 mt-16 dark:bg-gray-900 dark:border-b dark:border-gray-800">
         <span className="text-gray-400 font-mono uppercase hidden sm:inline">Role: {userRole}</span>
         
@@ -204,7 +200,6 @@ export default function App() {
           </button>
         )}
 
-        {/* RIDER ONBOARDING LINK: Only show for customers who are NOT yet riders */}
         {!isRider && !isAdmin && !isVendor && (
           <>
             <span className="text-gray-600">|</span>
@@ -221,16 +216,11 @@ export default function App() {
         <button onClick={resetFlow} className="hover:text-white">Customer View</button>
       </div>
 
-      {/* MAIN CONTENT */}
       <main className={`flex-grow max-w-7xl mx-auto px-4 w-full ${ (isAdmin || isVendor || isRider || currentView === 'rider_onboarding') ? 'py-6' : 'pt-24 pb-10' }`}>
-        
-        {/* VIEW LOGIC */}
         {currentView === 'rider_onboarding' ? (
-          // 2. RENDER REGISTRATION FORM
           <RiderRegistration 
             user={user} 
             onComplete={() => {
-              // Reload page to refresh role (simple way)
               window.location.reload();
             }}
             onCancel={resetFlow} 
@@ -273,12 +263,10 @@ export default function App() {
             </div>
           </>
         )}
-        
       </main>
 
       <Footer />
 
-      {/* Dark Mode Toggle */}
       <button 
         onClick={() => setDarkMode(!darkMode)}
         className="fixed bottom-6 right-6 p-4 rounded-full shadow-2xl z-50 transition-all duration-300 hover:scale-110 bg-indigo-600 text-white dark:bg-yellow-400 dark:text-gray-900"
