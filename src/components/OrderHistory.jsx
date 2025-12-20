@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 // FIX: Using standard import
 import { db } from '../firebase';
 import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
+// 1. IMPORT CHAT WINDOW
+import ChatWindow from './ChatWindow';
 
 export default function OrderHistory({ user, onBack, onTrackOrder }) {
   const [orders, setOrders] = useState([]);
@@ -11,6 +13,9 @@ export default function OrderHistory({ user, onBack, onTrackOrder }) {
   // CALL UI STATE
   const [callModal, setCallModal] = useState(null); // { orderId, vendorName, phone, target, mode }
   const [callTimer, setCallTimer] = useState(0);
+  
+  // 2. STATE FOR CHAT
+  const [chatOrder, setChatOrder] = useState(null);
 
   // Call Timer Effect
   useEffect(() => {
@@ -146,7 +151,7 @@ export default function OrderHistory({ user, onBack, onTrackOrder }) {
                   {/* Actions Row */}
                   {activeTab === 'active' && (
                     <div className="flex gap-2 mt-1">
-                      {/* Call Button - Toggles between Rider/Vendor based on status */}
+                      {/* Call Button */}
                       <button 
                         onClick={() => setCallModal({
                           orderId: order.id,
@@ -157,7 +162,15 @@ export default function OrderHistory({ user, onBack, onTrackOrder }) {
                         })}
                         className="text-xs border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 px-3 py-1.5 rounded-full font-semibold hover:bg-gray-50 dark:hover:bg-gray-800 transition flex items-center gap-1"
                       >
-                        <span>📞</span> Call {order.status === 'Out for Delivery' ? 'Rider' : 'Shop'}
+                        <span>📞</span> Call
+                      </button>
+
+                      {/* 3. CHAT BUTTON */}
+                      <button 
+                        onClick={() => setChatOrder(order)}
+                        className="text-xs bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-3 py-1.5 rounded-full font-semibold hover:bg-gray-200 transition flex items-center gap-1"
+                      >
+                        <span>💬</span> Chat
                       </button>
 
                       {/* Track Button */}
@@ -253,6 +266,15 @@ export default function OrderHistory({ user, onBack, onTrackOrder }) {
           )}
 
         </div>
+      )}
+
+      {/* 4. RENDER CHAT MODAL */}
+      {chatOrder && (
+        <ChatWindow 
+          order={chatOrder} 
+          user={user} 
+          onClose={() => setChatOrder(null)} 
+        />
       )}
     </div>
   );

@@ -166,7 +166,7 @@ export default function App() {
         darkMode={darkMode} 
       />
       
-      {/* 2. INCLUDE NOTIFICATION HANDLER HERE */}
+      {/* 2. NOTIFICATION HANDLER ENABLED */}
       <PushNotificationHandler user={user} />
 
       {/* SECURITY BAR / ROLE SWITCHER */}
@@ -233,7 +233,8 @@ export default function App() {
         ) : currentView === 'admin' && isAdmin ? (
           <AdminDashboard onBack={resetFlow} />
         ) : currentView === 'vendor' && (isAdmin || isVendor) ? (
-          <VendorDashboard onBack={resetFlow} />
+          // 3. UPDATED: Passing 'user' to VendorDashboard for chat
+          <VendorDashboard onBack={resetFlow} user={user} />
         ) : currentView === 'rider' && (isAdmin || isRider) ? (
           <RiderDashboard onBack={resetFlow} />
         ) : currentView === 'history' ? (
