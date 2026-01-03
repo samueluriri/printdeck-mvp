@@ -1,22 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { initializeApp, getApps, getApp } from "firebase/app";
-import { getFirestore, collection, query, onSnapshot, doc, updateDoc, addDoc, serverTimestamp } from "firebase/firestore";
-import { getAuth, onAuthStateChanged, signInAnonymously, signInWithCustomToken } from "firebase/auth";
-
-// --- Firebase Initialization ---
-let app, db, auth;
-try {
-  const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
-  if (!getApps().length) {
-    app = initializeApp(firebaseConfig);
-  } else {
-    app = getApp();
-  }
-  db = getFirestore(app);
-  auth = getAuth(app);
-} catch (error) {
-  console.error("Firebase Init Error:", error);
-}
+// --- NEW IMPORT: Pointing to the central config we created ---
+import { db, auth } from '../../config/firebase'; 
+import { collection, query, onSnapshot, doc, updateDoc, addDoc, serverTimestamp } from "firebase/firestore";
+import { onAuthStateChanged, signInAnonymously, signInWithCustomToken } from "firebase/auth";
 
 // --- Icons (SVGs) ---
 const EyeIcon = ({ visible }) => (
