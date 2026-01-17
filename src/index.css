@@ -1,26 +1,84 @@
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500&family=Inter:wght@300;400;600;700&family=Space+Grotesk:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --font-mono: 'JetBrains Mono', monospace;
+    --font-sans: 'Inter', sans-serif;
+    --font-display: 'Space Grotesk', sans-serif;
+  }
+
   html {
     font-family: 'Inter', sans-serif;
     scroll-behavior: smooth;
   }
 
   body {
-    @apply bg-white text-zinc-900 selection:bg-zinc-900 selection:text-white;
+    @apply bg-white text-zinc-900 selection:bg-blue-600 selection:text-white font-sans overflow-x-hidden;
+  }
+
+  /* Focus visible for accessibility */
+  *:focus-visible {
+    outline: 3px solid #2563EB;
+    outline-offset: 2px;
   }
 }
 
 @layer utilities {
-  .text-gradient {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600;
+  .font-mono-tech {
+    font-family: var(--font-mono);
   }
 
-  .glass {
-    @apply bg-white/70 backdrop-blur-lg border border-white/20 shadow-sm;
+  .font-display {
+    font-family: var(--font-display);
+  }
+
+  .font-sans-ui {
+    font-family: var(--font-sans);
+  }
+
+  .glass-nav {
+    backdrop-filter: blur(16px);
+    background: rgba(255, 255, 255, 0.85);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  }
+
+  .mask-fade {
+    mask-image: linear-gradient(to bottom, black 50%, transparent 100%);
+  }
+
+  .animate-subtle-float {
+    animation: subtle-float 8s ease-in-out infinite;
+  }
+
+  .animate-pulse-slow {
+    animation: pulse-slow 3s ease-in-out infinite;
+  }
+}
+
+@keyframes subtle-float {
+
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+
+  50% {
+    transform: translateY(-15px) scale(1.02);
+  }
+}
+
+@keyframes pulse-slow {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
   }
 }
