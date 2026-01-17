@@ -1,104 +1,56 @@
-import React from 'react';
+import React from "react";
 
-const products = [
-  {
-    id: 1,
-    name: "A4 Documents", 
-    price: "₦50",
-    unit: "/ page",
-    description: "Assignments, Thesis & Reports.",
-    icon: "📄",
-    color: "bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-300"
-  },
-  {
-    id: 2,
-    name: "Business Cards",
-    price: "₦5,000",
-    unit: "/ 100pcs",
-    description: "Matte or Glossy finish.",
-    icon: "📇",
-    color: "bg-purple-50 text-purple-600 dark:bg-purple-900/30 dark:text-purple-300"
-  },
-  {
-    id: 3,
-    name: "A5 Flyers",
-    price: "₦15,000",
-    unit: "/ 100pcs",
-    description: "Vibrant marketing materials.",
-    icon: "📢",
-    color: "bg-orange-50 text-orange-600 dark:bg-orange-900/30 dark:text-orange-300"
-  },
-  {
-    id: 4,
-    name: "Roll-up Banners",
-    price: "₦25,000",
-    unit: "/ unit",
-    description: "Events & Exhibitions.",
-    icon: "🎏",
-    color: "bg-green-50 text-green-600 dark:bg-green-900/30 dark:text-green-300"
-  }
-];
+const ProductCard = ({ title, icon, color, delay, onClick }) => (
+  <div
+    onClick={onClick}
+    className={`group relative bg-white p-6 rounded-3xl border border-slate-100 shadow-lg shadow-slate-100/50 hover:shadow-2xl hover:shadow-slate-200/50 hover:border-indigo-100 hover:-translate-y-2 transition-all duration-500 cursor-pointer overflow-hidden ${delay}`}
+  >
+    <div className={`absolute top-0 right-0 w-32 h-32 bg-${color}-50 rounded-bl-full -mr-8 -mt-8 group-hover:scale-150 transition-transform duration-700 ease-out`}></div>
 
-export default function ProductGrid({ onSelectProduct }) {
-  return (
-    // UPGRADE: Changed background to match new dark theme
-    <section className="py-16 bg-gray-50/50 dark:bg-gray-950">
-      <div className="max-w-7xl mx-auto px-4">
-        
-        <div className="text-center mb-12">
-          <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight sm:text-4xl">
-            Popular Categories
-          </h2>
-          {/* Fixed visibility issue: Text is now gray-400 in dark mode for better contrast against gray-950 */}
-          <p className="mt-4 max-w-2xl text-lg text-gray-500 dark:text-gray-400 mx-auto">
-            Choose a product to get started. Instant pricing, fast delivery.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-          
-          {products.map((product) => (
-            <div 
-              key={product.id} 
-              onClick={() => onSelectProduct(product)}
-              // UPGRADE: Dark mode card styling
-              // bg-white -> dark:bg-gray-900
-              // border-gray-100 -> dark:border-gray-800
-              className="group relative bg-white dark:bg-gray-900 rounded-3xl p-6 cursor-pointer border border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300 ease-out"
-            >
-              {/* Icon Bubble */}
-              <div className={`w-16 h-16 rounded-2xl flex items-center justify-center text-3xl mb-6 ${product.color} group-hover:scale-110 transition-transform duration-300`}>
-                {product.icon}
-              </div>
-              
-              {/* Content */}
-              <div>
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
-                  {product.name}
-                </h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 mb-4 font-medium">
-                  {product.description}
-                </p>
-              </div>
-              
-              {/* Price Tag */}
-              <div className="flex items-baseline gap-1 pt-4 border-t border-gray-50 dark:border-gray-800">
-                <span className="text-xl font-extrabold text-gray-900 dark:text-white">{product.price}</span>
-                <span className="text-xs text-gray-400 dark:text-gray-500 font-medium">{product.unit}</span>
-              </div>
-
-              {/* Hover Action Indicator */}
-              <div className="absolute top-6 right-6 opacity-0 group-hover:opacity-100 transition-opacity transform translate-x-2 group-hover:translate-x-0">
-                <div className="w-8 h-8 rounded-full bg-gray-900 dark:bg-white flex items-center justify-center text-white dark:text-gray-900">
-                  →
-                </div>
-              </div>
-            
-            </div>
-          ))}
-
-        </div>
+    <div className="relative z-10">
+      <div className={`w-14 h-14 rounded-2xl bg-${color}-50 text-${color}-600 flex items-center justify-center text-3xl mb-6 group-hover:bg-${color}-600 group-hover:text-white transition-colors duration-300 shadow-sm`}>
+        {icon}
       </div>
-    </section>
+
+      <h3 className="font-bold text-xl text-slate-800 mb-2 group-hover:text-indigo-900">{title}</h3>
+      <p className="text-sm text-slate-500 group-hover:text-slate-600">Perfect for all your needs. High quality finish.</p>
+
+      <div className="mt-6 flex items-center text-indigo-600 font-semibold text-sm opacity-0 group-hover:opacity-100 transform translate-y-2 group-hover:translate-y-0 transition-all duration-300">
+        Order Now <span className="ml-1">→</span>
+      </div>
+    </div>
+  </div>
+);
+
+const ProductGrid = ({ onSelectProduct }) => {
+  const products = [
+    { name: "A4 Document", icon: "📄", color: "blue", delay: "" },
+    { name: "Banner", icon: "🚩", color: "purple", delay: "md:mt-8" }, // Staggered layout
+    { name: "Stickers", icon: "✨", color: "pink", delay: "" },
+    { name: "Business Cards", icon: "💳", color: "orange", delay: "md:mt-8" },
+  ];
+
+  return (
+    <div className="max-w-7xl mx-auto py-20 px-6">
+      <div className="text-center mb-16">
+        <h2 className="text-3xl font-bold text-slate-900 mb-4">Popular Products</h2>
+        <p className="text-slate-500 max-w-lg mx-auto">Choose from our wide range of high-quality printing options tailored to your needs.</p>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+        {products.map((p, i) => (
+          <ProductCard
+            key={i}
+            title={p.name}
+            icon={p.icon}
+            color={p.color}
+            delay={p.delay}
+            onClick={() => onSelectProduct({ name: p.name })}
+          />
+        ))}
+      </div>
+    </div>
   );
-}
+};
+
+export default ProductGrid;

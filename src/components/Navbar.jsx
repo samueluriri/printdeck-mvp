@@ -1,76 +1,110 @@
-import React from 'react';
+import React, { useState, useEffect } from "react";
+import { Printer, Menu, X } from "lucide-react";
 
-export default function Navbar({ user, onLogout, onMyOrders, onHome, activeCount }) {
+const Navbar = ({ activeCount, onLogout, onMyOrders, onHome, user, onLogin }) => {
+  const [scrolled, setScrolled] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   return (
-    // UPGRADE: Added dark mode specific classes for a premium feel
-    // bg-white/80 -> dark:bg-gray-950/80 (Deep black glass)
-    // border-gray-100 -> dark:border-gray-800 (Subtle dark border)
-    <nav className="fixed w-full z-50 top-0 transition-all duration-300 bg-white/80 dark:bg-gray-950/80 backdrop-blur-md border-b border-gray-100 dark:border-gray-800 supports-[backdrop-filter]:bg-white/60 dark:supports-[backdrop-filter]:bg-gray-950/60">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          
-          {/* Logo Section */}
-          <div 
-            className="flex-shrink-0 flex items-center cursor-pointer gap-2 group" 
-            onClick={onHome}
-          >
-            <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold text-lg shadow-indigo-200 dark:shadow-none shadow-lg group-hover:rotate-12 transition-transform">
-              P
-            </div>
-            {/* Dark text -> White text */}
-            <h1 className="text-2xl font-extrabold text-gray-900 dark:text-white tracking-tight group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
-              PrintDeck
-            </h1>
+    <nav
+      className={`fixed top-0 w-full z-[100] transition-all duration-500 ${scrolled ? "py-4 glass-nav shadow-sm" : "py-6 bg-transparent"
+        }`}
+    >
+      <div className="max-w-[1400px] mx-auto px-8 flex justify-between items-center">
+        <div className="flex items-center gap-4 cursor-pointer" onClick={onHome}>
+          <div className="w-8 h-8 bg-zinc-900 flex items-center justify-center rounded-lg shadow-lg group">
+            <Printer
+              size={16}
+              className="text-white group-hover:scale-110 transition-transform"
+            />
           </div>
+          <span className="font-display text-lg font-bold tracking-tight text-zinc-900">
+            PrintDeck<span className="text-zinc-400">.io</span>
+          </span>
+        </div>
 
-          {/* Navigation Links */}
-          <div className="hidden md:flex space-x-8 items-center">
-            
-            <button 
-              onClick={onHome} 
-              className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+        <div className="hidden lg:flex items-center gap-10">
+          {["Services", "Infrastructure", "Nodes", "Docs"].map((item) => (
+            <a
+              key={item}
+              className="text-[10px] font-mono-tech uppercase tracking-[0.2em] text-zinc-400 hover:text-zinc-900 transition-colors cursor-pointer font-medium"
             >
-              Home
-            </button>
-            
-            <button 
-              onClick={onMyOrders} 
-              className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors relative"
-            >
-              My Orders
-              
-              {activeCount > 0 && (
-                <span className="absolute -top-3 -right-3 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white ring-2 ring-white dark:ring-gray-950">
-                  {activeCount}
-                </span>
-              )}
-            </button>
-            
-            {/* User Info / Logout */}
-            {user ? (
-              <div className="flex items-center gap-4 pl-4 border-l border-gray-200 dark:border-gray-800">
-                <div className="hidden lg:flex flex-col items-end">
-                  {/* Fixed clarity issues: using lighter grays for dark mode */}
-                  <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">Logged in as</span>
-                  <span className="text-sm font-bold text-gray-800 dark:text-gray-100">{user.email.split('@')[0]}</span>
-                </div>
-                <button 
-                  onClick={onLogout}
-                  className="bg-gray-100 dark:bg-gray-800 hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 p-2 rounded-full transition-all"
-                  title="Log Out"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
-                </button>
-              </div>
-            ) : (
-              <button className="bg-indigo-600 text-white px-6 py-2.5 rounded-full font-bold text-sm shadow-lg shadow-indigo-200 dark:shadow-none hover:bg-indigo-700 hover:shadow-indigo-300 hover:-translate-y-0.5 transition-all">
-                Get Started
+              {item}
+            </a>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-4">
+          {user ? (
+            <>
+              <button
+                onClick={onMyOrders}
+                className="hidden md:flex items-center gap-2 text-[10px] font-mono-tech uppercase tracking-widest text-zinc-500 hover:text-zinc-900 transition-colors"
+              >
+                My Orders
+                {activeCount > 0 && (
+                  <span className="bg-emerald-500 text-white px-1.5 py-0.5 rounded text-[9px]">
+                    {activeCount}
+                  </span>
+                )}
               </button>
-            )}
-          </div>
+              <button
+                onClick={onLogout}
+                className="text-[10px] font-mono-tech uppercase tracking-widest text-zinc-400 hover:text-red-500 transition-colors hidden md:block"
+              >
+                Logout
+              </button>
+            </>
+          ) : (
+            // No login button shown if not logged in, just the "Launch Terminal" button below handles it?
+            // Actually, "Launch Terminal" in the snippet triggers the modal.
+            // We'll treat "Launch Terminal" as the primary CTA coming up next.
+            null
+          )}
 
+          <button
+            onClick={user ? onHome : onLogin} // If logged in, maybe go to dashboard? Or if not, show login/start
+            className="bg-zinc-900 text-white px-6 py-2.5 rounded-full text-[10px] font-mono-tech uppercase tracking-widest hover:bg-zinc-800 transition-all shadow-md hidden sm:block"
+          >
+            {user ? "Dashboard" : "Launch Terminal"}
+          </button>
+
+          <button className="lg:hidden text-zinc-900" onClick={() => setMenuOpen(!menuOpen)}>
+            {menuOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
         </div>
       </div>
+
+      {/* Mobile Menu */}
+      {menuOpen && (
+        <div className="lg:hidden absolute top-full left-0 w-full bg-white/95 backdrop-blur-xl border-b border-zinc-100 p-8 flex flex-col gap-6 shadow-xl animate-fade-in-up">
+          {["Services", "Infrastructure", "Nodes", "Docs"].map((item) => (
+            <a
+              key={item}
+              className="text-xs font-mono-tech uppercase tracking-[0.2em] text-zinc-600 hover:text-zinc-900"
+            >
+              {item}
+            </a>
+          ))}
+          <div className="h-px bg-zinc-100 w-full my-2" />
+          {user ? (
+            <>
+              <button onClick={() => { onMyOrders(); setMenuOpen(false); }} className="text-left text-xs font-mono-tech uppercase tracking-widest text-zinc-900">My Orders</button>
+              <button onClick={() => { onLogout(); setMenuOpen(false); }} className="text-left text-xs font-mono-tech uppercase tracking-widest text-red-500">Logout</button>
+            </>
+          ) : (
+            <button onClick={() => { onLogin(); setMenuOpen(false); }} className="text-left text-xs font-mono-tech uppercase tracking-widest text-zinc-900">Launch Terminal</button>
+          )}
+        </div>
+      )}
     </nav>
   );
-}
+};
+
+export default Navbar;

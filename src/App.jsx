@@ -13,80 +13,18 @@ import {
   setDoc,
 } from "firebase/firestore";
 
-/* -------------------- CORE COMPONENTS -------------------- */
+/* -------------------- COMPONENTS -------------------- */
+import Navbar from "./components/Navbar";
+import LandingPage from "./components/LandingPage";
+import ProductGrid from "./components/ProductGrid";
 import Upload from "./components/Upload";
+import Footer from "./components/Footer";
+import Login from "./components/Login";
 
 /* -------------------- DASHBOARDS -------------------- */
 import VendorDashboard from "./features/vendor/VendorDashboard";
 import CustomerDashboard from "./features/customer/CustomerDashboard";
 import RiderDashboard from "./features/rider/RiderDashboard";
-
-/* -------------------- MOCK / TEMP COMPONENTS -------------------- */
-const Navbar = ({ user, activeCount, onLogout, onMyOrders, onHome, darkMode }) => (
-  <nav
-    className={`p-4 shadow flex justify-between items-center sticky top-0 z-50 ${
-      darkMode ? "bg-gray-900 text-white" : "bg-white text-gray-900"
-    }`}
-  >
-    <button onClick={onHome} className="font-bold text-xl text-blue-600">
-      PrintDeck
-    </button>
-    <div className="flex gap-4 items-center">
-      <button onClick={onMyOrders} className="font-medium hover:text-blue-500">
-        My Orders{" "}
-        {activeCount > 0 && (
-          <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
-            {activeCount}
-          </span>
-        )}
-      </button>
-      <button
-        onClick={onLogout}
-        className="text-red-500 font-medium border px-3 py-1 rounded hover:bg-red-50"
-      >
-        Log Out
-      </button>
-    </div>
-  </nav>
-);
-
-const Hero = ({ onStart }) => (
-  <div className="bg-blue-600 text-white text-center py-20 px-4 rounded-b-3xl">
-    <h1 className="text-4xl font-extrabold mb-4">
-      Print Anything, Delivered Fast.
-    </h1>
-    <p className="mb-8 opacity-90">
-      Upload documents from your room and get them delivered in minutes.
-    </p>
-    <button
-      onClick={onStart}
-      className="bg-white text-blue-600 px-8 py-3 rounded-full font-bold shadow-lg hover:scale-105 transition"
-    >
-      Start Printing
-    </button>
-  </div>
-);
-
-const ProductGrid = ({ onSelectProduct }) => (
-  <div className="py-12 px-4 grid grid-cols-2 md:grid-cols-4 gap-4">
-    {["A4 Document", "Banner", "Stickers", "Business Cards"].map((p, i) => (
-      <div
-        key={i}
-        onClick={() => onSelectProduct({ name: p })}
-        className="bg-white p-6 rounded-xl shadow-sm border hover:shadow-md cursor-pointer text-center"
-      >
-        <div className="text-4xl mb-4">📄</div>
-        <h3 className="font-bold">{p}</h3>
-      </div>
-    ))}
-  </div>
-);
-
-const Footer = () => (
-  <footer className="bg-gray-900 text-white py-8 text-center text-sm mt-auto">
-    © 2025 PrintDeck
-  </footer>
-);
 
 /* -------------------- MAIN APP -------------------- */
 export default function App() {
@@ -98,6 +36,7 @@ export default function App() {
   const [userRole, setUserRole] = useState("customer");
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [currentView, setCurrentView] = useState("home");
+  const [showLogin, setShowLogin] = useState(false);
 
   /* -------------------- AUTH LISTENER -------------------- */
   useEffect(() => {
@@ -105,6 +44,7 @@ export default function App() {
       setUser(currentUser);
 
       if (currentUser) {
+        setShowLogin(false);
         const ref = doc(db, "users", currentUser.uid);
         const snap = await getDoc(ref);
 
@@ -140,37 +80,81 @@ export default function App() {
     return () => unsub();
   }, [user]);
 
+  /* -------------------- HANDLERS -------------------- */
+  const handleStart = () => {
+    if (user) {
+      setCurrentView("upload");
+    } else {
+      setShowLogin(true);
+    }
+  };
+
+  const handleSelectProduct = (product) => {
+    if (!user) {
+      setShowLogin(true);
+      return;
+    }
+    setSelectedProduct(product);
+    setCurrentView("upload");
+  };
+
   /* -------------------- ROUTING -------------------- */
   if (loading)
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        Loading...
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="flex flex-col items-center">
+          <div className="w-12 h-12 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-4"></div>
+          <p className="text-slate-500 font-medium">Loading PrintDeck...</p>
+        </div>
       </div>
     );
 
-  if (userRole === "vendor") return <VendorDashboard user={user} />;
-  if (userRole === "rider") return <RiderDashboard user={user} />;
+  // If user clicks login/started but not auth'd
+  if (showLogin && !user) {
+    return <Login onBack={() => setShowLogin(false)} />;
+  }
+
+  if (user && userRole === "vendor") return <VendorDashboard user={user} />;
+  if (user && userRole === "rider") return <RiderDashboard user={user} />;
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
+    <div className="min-h-screen flex flex-col bg-white text-zinc-900 font-sans selection:bg-zinc-900 selection:text-white">
       <Navbar
         user={user}
         activeCount={notificationCount}
         onLogout={() => signOut(auth)}
-        onMyOrders={() => setCurrentView("history")}
-        onHome={() => setCurrentView("home")}
-        darkMode={darkMode}
+        onMyOrders={() => {
+          setSelectedProduct(null);
+          setCurrentView("history");
+        }}
+        onHome={() => {
+          setSelectedProduct(null);
+          setCurrentView("home");
+        }}
+        onLogin={() => setShowLogin(true)}
       />
 
-      <main className="flex-grow">
+      <main className="flex-grow pt-20">
         {currentView === "history" ? (
-          <CustomerDashboard user={user} />
-        ) : selectedProduct ? (
-          <Upload />
+          <div className="max-w-7xl mx-auto py-10 px-6">
+            <h2 className="text-3xl font-bold mb-6 text-slate-800">My Order History</h2>
+            <CustomerDashboard user={user} />
+          </div>
+        ) : selectedProduct || currentView === "upload" ? (
+          <div className="animate-fade-in-up">
+            <div className="max-w-7xl mx-auto pt-10 px-6">
+              <button
+                onClick={() => { setSelectedProduct(null); setCurrentView("home"); }}
+                className="text-slate-500 hover:text-indigo-600 flex items-center gap-2 mb-4"
+              >
+                ← Back to Home
+              </button>
+            </div>
+            <Upload />
+          </div>
         ) : (
           <>
-            <Hero onStart={() => {}} />
-            <ProductGrid onSelectProduct={setSelectedProduct} />
+            <LandingPage onStart={handleStart} />
           </>
         )}
       </main>

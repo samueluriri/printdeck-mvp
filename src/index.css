@@ -1,3 +1,26 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500&family=Inter:wght@300;400;600;700&family=Space+Grotesk:wght@300;400;500;600&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  html {
+    font-family: 'Inter', sans-serif;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-white text-zinc-900 selection:bg-zinc-900 selection:text-white;
+  }
+}
+
+@layer utilities {
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600;
+  }
+
+  .glass {
+    @apply bg-white/70 backdrop-blur-lg border border-white/20 shadow-sm;
+  }
+}

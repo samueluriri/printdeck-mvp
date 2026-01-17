@@ -1,55 +1,58 @@
-import React from 'react';
+import React from "react";
 
-// 'export default' allows other files (like App.jsx) to import and use this component.
-export default function Footer() {
-  
-  // We return JSX (HTML-like code) that React renders to the screen.
+const Footer = () => {
   return (
-    // <footer> tag: Semantic HTML to tell Google/Browsers this is the bottom of the page.
-    // bg-gray-900: Dark background color.
-    // text-white: White text color.
-    // py-12: Padding on the Y-axis (top and bottom) of 3rem (48px).
-    <footer className="bg-gray-900 text-white py-12">
-      
-      {/* Container to center content and add side margins */}
-      <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-3 gap-8">
-        
-        {/* Column 1: Brand Info */}
-        <div>
-          <h3 className="text-xl font-bold mb-4">PrintDeck</h3>
-          <p className="text-gray-400 text-sm">
-            Nigeria's #1 decentralized printing marketplace. 
-            From your phone to the print shop in minutes.
-          </p>
-        </div>
+    <footer className="py-24 border-t border-zinc-100 bg-white text-zinc-900 font-sans">
+      <div className="max-w-[1400px] mx-auto px-8">
+        <div className="flex flex-col md:flex-row justify-between items-start gap-16 mb-24">
+          <div className="max-w-xs">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-6 h-6 bg-zinc-900 rounded-md" />
+              <span className="font-display font-bold uppercase tracking-widest">
+                PrintDeck
+              </span>
+            </div>
+            <p className="text-zinc-400 text-sm leading-relaxed font-sans-ui">
+              Physical asset delivery via decentralized fabrication nodes. Building
+              the last-mile manufacturing layer.
+            </p>
+          </div>
 
-        {/* Column 2: Quick Links */}
-        <div>
-          <h4 className="font-bold mb-4 text-indigo-400">Company</h4>
-          {/* Flex-col stacks the links vertically */}
-          <div className="flex flex-col space-y-2 text-sm text-gray-400">
-            <a href="#" className="hover:text-white transition">About Us</a>
-            <a href="#" className="hover:text-white transition">Become a Vendor</a>
-            <a href="#" className="hover:text-white transition">Rider Partner</a>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-16">
+            {[
+              { title: "Platform", links: ["Services", "Nodes", "Docs"] },
+              { title: "Company", links: ["About", "Privacy", "Legal"] },
+              { title: "Social", links: ["X.com", "GitHub", "Discord"] },
+            ].map((cat) => (
+              <div key={cat.title} className="space-y-6">
+                <h5 className="font-mono-tech text-[10px] font-bold uppercase tracking-widest text-zinc-900">
+                  {cat.title}
+                </h5>
+                <ul className="space-y-4">
+                  {cat.links.map((link) => (
+                    <li
+                      key={link}
+                      className="text-zinc-400 text-sm hover:text-zinc-900 cursor-pointer transition-colors font-sans-ui"
+                    >
+                      {link}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
           </div>
         </div>
 
-        {/* Column 3: Contact */}
-        <div>
-          <h4 className="font-bold mb-4 text-indigo-400">Support</h4>
-          <div className="text-sm text-gray-400 space-y-2">
-            <p>Lagos, Nigeria</p>
-            <p>support@printdeck.ng</p>
-            <p>+234 800 PRINT DECK</p>
+        <div className="pt-12 border-t border-zinc-50 flex flex-col sm:flex-row justify-between items-center gap-6 font-mono-tech text-[9px] uppercase tracking-[0.4em] text-zinc-300">
+          <span>© 2026 PRINTDECK GLOBAL PROTOCOL</span>
+          <div className="flex gap-8">
+            <span>LATENCY: 14MS</span>
+            <span>STATUS: NOMINAL</span>
           </div>
         </div>
-
-      </div>
-
-      {/* Copyright Section (Border top line) */}
-      <div className="max-w-7xl mx-auto px-4 mt-8 pt-8 border-t border-gray-800 text-center text-xs text-gray-500">
-        © 2025 PrintDeck Technologies. All rights reserved.
       </div>
     </footer>
   );
-}
+};
+
+export default Footer;
