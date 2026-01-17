@@ -117,7 +117,7 @@ export default function App() {
   if (user && userRole === "rider") return <RiderDashboard user={user} />;
 
   return (
-    <div className="min-h-screen flex flex-col bg-white text-zinc-900 font-sans selection:bg-zinc-900 selection:text-white">
+    <div className="min-h-screen flex flex-col bg-white text-zinc-900 font-sans">
       <Navbar
         user={user}
         activeCount={notificationCount}

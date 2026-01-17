@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '../firebase';
 import { ArrowLeft, Loader2, AlertCircle } from 'lucide-react';
 
 export default function Login({ onBack }) {
@@ -8,8 +9,6 @@ export default function Login({ onBack }) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-
-  const auth = getAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();

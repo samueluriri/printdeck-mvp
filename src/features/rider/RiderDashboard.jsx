@@ -1,27 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { initializeApp, getApps, getApp } from "firebase/app";
-import { getFirestore, collection, query, onSnapshot, doc, updateDoc, getDoc, where, orderBy } from "firebase/firestore";
-import { getAuth, onAuthStateChanged, signInAnonymously, signInWithCustomToken } from "firebase/auth";
-
-// --- INSTRUCTIONS FOR LOCAL USE ---
-// Once you have set up src/config/firebase.js locally, you can uncomment this line
-// and delete the initialization block below to keep your code clean.
-// import { db, auth } from '../../config/firebase';
-
-// --- Firebase Initialization (Self-Contained for Preview Stability) ---
-let app, db, auth;
-try {
-    const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
-    if (!getApps().length) {
-        app = initializeApp(firebaseConfig);
-    } else {
-        app = getApp();
-    }
-    db = getFirestore(app);
-    auth = getAuth(app);
-} catch (error) {
-    console.error("Firebase Init Error:", error);
-}
+import { db, auth } from '../../firebase';
+import { collection, query, onSnapshot, doc, updateDoc, getDoc, where, orderBy } from "firebase/firestore";
+import { onAuthStateChanged, signInAnonymously, signInWithCustomToken } from "firebase/auth";
 
 import { Bike, Navigation, ChevronRight, CheckCircle, MapPin, Package, Wallet, ArrowDownLeft, TrendingUp, X } from 'lucide-react';
 

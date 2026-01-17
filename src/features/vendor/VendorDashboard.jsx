@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 // --- NEW IMPORT: Pointing to the central config we created ---
-import { db, auth } from '../../config/firebase';
+import { db, auth } from '../../firebase';
 import { collection, query, onSnapshot, doc, updateDoc, addDoc, serverTimestamp } from "firebase/firestore";
 import { onAuthStateChanged, signInAnonymously, signInWithCustomToken } from "firebase/auth";
 
@@ -124,8 +124,8 @@ const WalletView = ({ historyOrders }) => {
                 <div key={txn.id} className="p-6 flex items-center justify-between hover:bg-zinc-50/50 transition group cursor-default">
                   <div className="flex items-center gap-5">
                     <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-colors border ${txn.type === 'credit'
-                        ? 'bg-emerald-50 border-emerald-100 text-emerald-600'
-                        : 'bg-zinc-50 border-zinc-100 text-zinc-400'
+                      ? 'bg-emerald-50 border-emerald-100 text-emerald-600'
+                      : 'bg-zinc-50 border-zinc-100 text-zinc-400'
                       }`}>
                       {txn.type === 'credit' ? <ArrowDownLeft size={20} /> : <ArrowUpRight size={20} />}
                     </div>
@@ -269,8 +269,8 @@ const ChatWindow = ({ order, user, onClose }) => {
             messages.map((msg) => (
               <div key={msg.id} className={`flex ${msg.senderId === user.uid ? 'justify-end' : 'justify-start'}`}>
                 <div className={`max-w-[85%] rounded-2xl px-4 py-2 text-sm shadow-sm ${msg.senderId === user.uid
-                    ? 'bg-indigo-600 text-white rounded-br-none'
-                    : 'bg-white dark:bg-gray-700 dark:text-gray-100 rounded-bl-none border border-gray-100 dark:border-gray-600'
+                  ? 'bg-indigo-600 text-white rounded-br-none'
+                  : 'bg-white dark:bg-gray-700 dark:text-gray-100 rounded-bl-none border border-gray-100 dark:border-gray-600'
                   }`}>
                   {msg.text}
                 </div>
@@ -467,8 +467,8 @@ export default function VendorDashboard({ onBack = () => { }, user }) {
                   <div className="flex flex-wrap items-center gap-4 mb-3">
                     <h3 className="font-display font-bold text-2xl text-zinc-900">{order.productName || "Untitled Order"}</h3>
                     <span className={`px-3 py-1 rounded-full text-[10px] font-mono-tech font-bold uppercase tracking-widest ${order.status === 'Ready for Pickup' ? 'bg-emerald-100 text-emerald-700' :
-                        order.status === 'Out for Delivery' ? 'bg-blue-100 text-blue-700' :
-                          'bg-amber-100 text-amber-700'
+                      order.status === 'Out for Delivery' ? 'bg-blue-100 text-blue-700' :
+                        'bg-amber-100 text-amber-700'
                       }`}>
                       {order.status || "Pending"}
                     </span>
