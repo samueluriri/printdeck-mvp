@@ -1,5 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Wallet, Plus, ArrowUpRight, ArrowDownLeft, Upload, Bike, Footprints, X, FileText, CheckCircle, Clock, AlertTriangle } from 'lucide-react';
+import { auth, db } from "../../firebase";
+import { collection, query, onSnapshot, addDoc, serverTimestamp } from "firebase/firestore";
+import { onAuthStateChanged, signInAnonymously, signInWithCustomToken } from "firebase/auth";
 
 
 // --- Customer Wallet Component ---
