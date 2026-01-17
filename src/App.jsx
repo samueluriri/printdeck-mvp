@@ -118,22 +118,24 @@ export default function App() {
 
   return (
     <div className="min-h-screen flex flex-col bg-white text-zinc-900 font-sans">
-      <Navbar
-        user={user}
-        activeCount={notificationCount}
-        onLogout={() => signOut(auth)}
-        onMyOrders={() => {
-          setSelectedProduct(null);
-          setCurrentView("history");
-        }}
-        onHome={() => {
-          setSelectedProduct(null);
-          setCurrentView("home");
-        }}
-        onLogin={() => setShowLogin(true)}
-      />
+      {currentView !== "home" && (
+        <Navbar
+          user={user}
+          activeCount={notificationCount}
+          onLogout={() => signOut(auth)}
+          onMyOrders={() => {
+            setSelectedProduct(null);
+            setCurrentView("history");
+          }}
+          onHome={() => {
+            setSelectedProduct(null);
+            setCurrentView("home");
+          }}
+          onLogin={() => setShowLogin(true)}
+        />
+      )}
 
-      <main className="flex-grow pt-20">
+      <main className={`flex-grow ${currentView !== "home" ? "pt-20" : ""}`}>
         {currentView === "history" ? (
           <div className="max-w-7xl mx-auto py-10 px-6">
             <h2 className="text-3xl font-bold mb-6 text-slate-800">My Order History</h2>
@@ -153,12 +155,18 @@ export default function App() {
           </div>
         ) : (
           <>
-            <LandingPage onStart={handleStart} />
+            <LandingPage
+              onStart={handleStart}
+              notificationCount={notificationCount}
+              user={user}
+              onLogin={() => setShowLogin(true)}
+              onMyOrders={() => setCurrentView("history")}
+            />
           </>
         )}
       </main>
 
-      <Footer />
+      {currentView !== "home" && <Footer />}
     </div>
   );
 }
