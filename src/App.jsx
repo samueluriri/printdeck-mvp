@@ -16,7 +16,6 @@ import {
 /* -------------------- COMPONENTS -------------------- */
 import Navbar from "./components/Navbar";
 import LandingPage from "./components/LandingPage";
-import ProductGrid from "./components/ProductGrid";
 import Upload from "./components/Upload";
 import Footer from "./components/Footer";
 import Login from "./components/Login";
