@@ -1,0 +1,31 @@
+
+> printdeck@0.0.0 build
+> vite build
+
+[36mvite v7.2.7 [32mbuilding client environment for production...[36m[39m
+transforming...
+[32mΓ£ô[39m 21 modules transformed.
+Γ£ù Build failed in 1.50s
+error during build:
+[vite:esbuild] Transform failed with 1 error:
+C:/Users/HomePC/Desktop/printdeck/src/features/customer/CustomerDashboard.jsx:219:4: ERROR: Unexpected "return"
+file: C:/Users/HomePC/Desktop/printdeck/src/features/customer/CustomerDashboard.jsx:219:4
+
+Unexpected "return"
+217 |  
+218 |      return (
+219 |      return (
+    |      ^
+220 |          <div className="fixed inset-0 bg-zinc-900/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm anima...
+221 |              <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+
+    at failureErrorWithLog (C:\Users\HomePC\Desktop\printdeck\node_modules\esbuild\lib\main.js:1467:15)
+    at C:\Users\HomePC\Desktop\printdeck\node_modules\esbuild\lib\main.js:736:50
+    at responseCallbacks.<computed> (C:\Users\HomePC\Desktop\printdeck\node_modules\esbuild\lib\main.js:603:9)
+    at handleIncomingPacket (C:\Users\HomePC\Desktop\printdeck\node_modules\esbuild\lib\main.js:658:12)
+    at Socket.readFromStdout (C:\Users\HomePC\Desktop\printdeck\node_modules\esbuild\lib\main.js:581:7)
+    at Socket.emit (node:events:508:28)
+    at addChunk (node:internal/streams/readable:559:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:510:3)
+    at Readable.push (node:internal/streams/readable:390:5)
+    at Pipe.onStreamRead (node:internal/stream_base_commons:189:23)

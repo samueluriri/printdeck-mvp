@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { storage } from "../firebase";
-import { UploadCloud, FileCheck, ExternalLink, RefreshCw, X, Loader2, FileUp } from 'lucide-react';
+import { CloudUpload, FileCheck, ExternalLink, RefreshCw, X, Loader2, FileUp } from 'lucide-react';
 
 const Upload = () => {
   const [file, setFile] = useState(null);
